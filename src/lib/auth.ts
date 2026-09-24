@@ -136,28 +136,63 @@ export const PERSONEL: Personel[] = [
 
 const SESSION_KEY = "kovancilar_bsm_session";
 
+// Türkçe karakter normalizasyonu — şifre karşılaştırmasında
+// 'ı' ↔ 'i', 'İ' ↔ 'I', 'ğ' ↔ 'g', 'ş' ↔ 's', 'ü' ↔ 'u',
+// 'ö' ↔ 'o', 'ç' ↔ 'c' eşleşmesi yapar. Böylece kullanıcı klavye
+// düzeninden bağımsız olarak şifreyi yazabilir.
+function normalizeTr(str: string): string {
+  if (!str) return "";
+  return str
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ı/g, "i")
+    .replace(/İ/g, "i")
+    .replace(/ğ/g, "g")
+    .replace(/Ğ/g, "g")
+    .replace(/ş/g, "s")
+    .replace(/Ş/g, "s")
+    .replace(/ü/g, "u")
+    .replace(/Ü/g, "u")
+    .replace(/ö/g, "o")
+    .replace(/Ö/g, "o")
+    .replace(/ç/g, "c")
+    .replace(/Ç/g, "c")
+    .trim();
+}
+
 export function authenticate(
   birimId: BirimId,
   sicil: string,
   sifre: string
 ): { ok: true; user: SessionUser } | { ok: false; error: string } {
+  // Sicil alanını normalize et — boşlukları vs. kırp
+  const sicilTrimmed = (sicil ?? "").trim();
+  const sifreTrimmed = (sifre ?? "").trim();
+
+  // Sicili hem normal hem de sıfır-dolgu (0001 ↔ 1) ile ara
   const user = PERSONEL.find(
-    (p) => p.sicil === sicil && p.birimId === birimId
+    (p) =>
+      (p.sicil === sicilTrimmed ||
+        // 0001 → 1 normalize ederek de dene
+        parseInt(p.sicil, 10).toString() ===
+          parseInt(sicilTrimmed, 10).toString()) &&
+      p.birimId === birimId
   );
 
   if (!user) {
     return {
       ok: false,
       error:
-        "Sicil numarası seçilen birimde kayıtlı değil. Birim-izole yapı nedeniyle her sicil yalnızca kendi biriminde geçerlidir.",
+        "Sicil numarası seçilen birimde kayıtlı değil. Birim-izole yapı nedeniyle her sicil yalnızca kendi biriminde geçerlidir. Önce biriminizi seçtiğinizden emin olun (örn: Operasyon Merkezi).",
     };
   }
 
-  if (user.sifre !== sifre) {
+  // Şifre karşılaştırma — Türkçe karakter normalizasyonu ile
+  // "kovancilar2026" == "kovancılar2026" == "KOVANCILAR2026"
+  if (normalizeTr(user.sifre) !== normalizeTr(sifreTrimmed)) {
     return {
       ok: false,
       error:
-        "Şifre hatalı. İlk giriş için varsayılan şifrenizi değiştirmemişseniz, bu birim demo şifresini kullanın.",
+        "Şifre hatalı. Türkçe karakter veya büyük/küçük harf farkı olmamalı; yine de tekrar deneyin. İpucu: kovancilar2026 (ı veya i, fark etmez).",
     };
   }
 
