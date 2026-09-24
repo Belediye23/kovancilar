@@ -29,6 +29,7 @@ import {
 import type { BirimId, SessionUser } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { BelediyeLogo } from "@/components/shared/belediye-logo";
 
 const BIRIM_IKONLAR: Record<BirimId, React.ComponentType<{ className?: string }>> = {
   operasyon: Command,
@@ -145,12 +146,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         <div className="w-full max-w-xl">
           {/* Logo + başlık bölümü */}
           <div className="flex flex-col items-center text-center mb-8">
-            <div className="relative w-20 h-20 sm:w-24 sm:h-24 mb-4">
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-700/10 border border-blue-500/30 flex items-center justify-center">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center">
-                  <span className="text-blue-300 font-bold text-2xl sm:text-3xl">K</span>
-                </div>
-              </div>
+            <div className="relative mb-4">
+              <BelediyeLogo size={96} rounded="xl" />
             </div>
             <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
               KOVANCILAR BELEDİYESİ
@@ -426,6 +423,7 @@ const DEMO_HESAPLAR: Record<
   { sicil: string; adSoyad: string; rol: string; demoSifre: string }[]
 > = {
   operasyon: [
+    { sicil: "0001", adSoyad: "Belediye Başkanı", rol: "Sistem Yöneticisi (Tam Yetki)", demoSifre: "kovancilar2026" },
     { sicil: "1001", adSoyad: "Mehmet Yılmaz", rol: "Operasyon Müdürü", demoSifre: "demo1234" },
     { sicil: "1002", adSoyad: "Selin Kaya", rol: "Komuta Operatörü", demoSifre: "demo1234" },
   ],

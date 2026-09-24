@@ -20,25 +20,29 @@ import {
 import { DashboardHeader, StatCard } from "@/components/app-shell";
 import { MiniHarita } from "@/components/shared/mini-harita";
 import { VakaKarti } from "@/components/shared/vaka-karti";
+import { YeniVakaFormu } from "@/components/shared/yeni-vaka-formu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import {
-  VAKALAR,
-  EKIPLER,
-  SU_ARIZA,
-  formatTarih,
-} from "@/lib/mock-data";
-import type { SessionUser } from "@/lib/types";
+import { SU_ARIZA, formatTarih } from "@/lib/mock-data";
+import { useOperasyonStore } from "@/lib/store";
+import type { SessionUser, Vaka } from "@/lib/types";
 
-type Module = "genel" | "su-ariza" | "kanalizasyon" | "vana-takip" | "ekipler" | "numune";
+type Module = "genel" | "su-ariza" | "kanalizasyon" | "vana-takip" | "ekipler" | "numune" | "yeni-vaka";
 
 export function AltyapiDashboard({ user }: { user: SessionUser }) {
   const [module, setModule] = useState<Module>("genel");
 
+  // Zustand store'dan canlı veri
+  const allVakalar = useOperasyonStore((s) => s.vakalar);
+  const allEkipler = useOperasyonStore((s) => s.ekipler);
   const vakalar = useMemo(
-    () => VAKALAR.filter((v) => v.birimId === "altyapi"),
-    []
+    () => allVakalar.filter((v) => v.birimId === "altyapi"),
+    [allVakalar]
+  );
+  const EKIPLER = useMemo(
+    () => allEkipler.filter((e) => e.birimId === "altyapi"),
+    [allEkipler]
   );
 
   const istatistik = useMemo(() => {
@@ -134,6 +138,14 @@ export function AltyapiDashboard({ user }: { user: SessionUser }) {
       {module === "vana-takip" && <VanaTakipModulu />}
       {module === "ekipler" && <AltyapiEkiplerModulu />}
       {module === "numune" && <NumuneModulu />}
+      {module === "yeni-vaka" && (
+        <YeniVakaFormu
+          user={user}
+          birimId="altyapi"
+          kategoriler={["Su Kırılma", "Su Sızıntı", "Su Koku", "Kanalizasyon"]}
+          defaultKategori="Su Kırılma"
+        />
+      )}
     </div>
   );
 }
@@ -145,6 +157,7 @@ const MODULES = [
   { id: "vana-takip", label: "Vana Takibi", ikon: Settings2 },
   { id: "ekipler", label: "Ekipler", ikon: Users },
   { id: "numune", label: "Numune Analizi", ikon: TestTube },
+  { id: "yeni-vaka", label: "Yeni Arıza", ikon: Plus },
 ] as const;
 
 function AltyapiGenelBakis({
@@ -154,7 +167,7 @@ function AltyapiGenelBakis({
 }: {
   istatistik: { toplamVaka: number; suKirma: number; tikanma: number; sizi: number; acil: number; cozuldu: number; devam: number; yeni: number };
   haritaNoktalari: { lat: number; lng: number; etiket?: string; oncelik?: string }[];
-  vakalar: typeof VAKALAR;
+  vakalar: Vaka[];
 }) {
   const sonVakalar = [...vakalar]
     .sort((a, b) => new Date(b.olusturmaZamani).getTime() - new Date(a.olusturmaZamani).getTime())

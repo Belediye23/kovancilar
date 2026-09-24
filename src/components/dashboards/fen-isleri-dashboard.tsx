@@ -14,44 +14,35 @@ import {
   Clock,
   MapPin,
   Plus,
-  Wrench,
   TrendingUp,
 } from "lucide-react";
 import { DashboardHeader, StatCard } from "@/components/app-shell";
 import { MiniHarita } from "@/components/shared/mini-harita";
 import { VakaKarti } from "@/components/shared/vaka-karti";
+import { YeniVakaFormu } from "@/components/shared/yeni-vaka-formu";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import {
-  VAKALAR,
-  EKIPLER,
-  MAHALLELER,
-  formatTarih,
-} from "@/lib/mock-data";
+import { MAHALLELER, formatTarih } from "@/lib/mock-data";
+import { useOperasyonStore } from "@/lib/store";
 import type { SessionUser, Vaka } from "@/lib/types";
 
 type Module = "genel" | "yol" | "kaldirim" | "parke" | "ekipler" | "yeni-vaka";
 
 export function FenIsleriDashboard({ user }: { user: SessionUser }) {
   const [module, setModule] = useState<Module>("genel");
-  const [vakalar, setVakalar] = useState<Vaka[]>(
-    VAKALAR.filter((v) => v.birimId === "fen-isleri")
-  );
 
-  function addVaka(yeni: Vaka) {
-    setVakalar((prev) => [yeni, ...prev]);
-  }
+  // Zustand store'dan canlı veri al
+  const allVakalar = useOperasyonStore((s) => s.vakalar);
+  const allEkipler = useOperasyonStore((s) => s.ekipler);
+  const vakalar = useMemo(
+    () => allVakalar.filter((v) => v.birimId === "fen-isleri"),
+    [allVakalar]
+  );
+  const EKIPLER = useMemo(
+    () => allEkipler.filter((e) => e.birimId === "fen-isleri"),
+    [allEkipler]
+  );
 
   const istatistik = useMemo(() => {
     return {
@@ -148,13 +139,27 @@ export function FenIsleriDashboard({ user }: { user: SessionUser }) {
       )}
       {module === "ekipler" && <FenEkiplerModulu />}
       {module === "yeni-vaka" && (
-        <YeniVakaFormu
-          onAdd={addVaka}
-          userSicil={user.sicil}
-          userAd={user.adSoyad}
-        />
+        <YeniVakaFormuShared user={user} birimId="fen-isleri" />
       )}
     </div>
+  );
+}
+
+// Fen İşleri için Yeni Vaka formu — shared component'ten
+function YeniVakaFormuShared({
+  user,
+  birimId,
+}: {
+  user: SessionUser;
+  birimId: "fen-isleri";
+}) {
+  return (
+    <YeniVakaFormu
+      user={user}
+      birimId={birimId}
+      kategoriler={["Yol", "Kaldırım", "Parke"]}
+      defaultKategori="Yol"
+    />
   );
 }
 
@@ -355,192 +360,3 @@ function FenEkiplerModulu() {
   );
 }
 
-function YeniVakaFormu({
-  onAdd,
-  userSicil,
-  userAd,
-}: {
-  onAdd: (v: Vaka) => void;
-  userSicil: string;
-  userAd: string;
-}) {
-  const [baslik, setBaslik] = useState("");
-  const [aciklama, setAciklama] = useState("");
-  const [mahalle, setMahalle] = useState("");
-  const [adres, setAdres] = useState("");
-  const [kategori, setKategori] = useState("Yol");
-  const [oncelik, setOncelik] = useState("orta");
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!baslik || !aciklama || !mahalle || !adres) {
-      toast({
-        title: "Eksik bilgi",
-        description: "Tüm zorunlu alanları doldurun.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const yeni: Vaka = {
-      id: `V-2026-${Math.floor(1000 + Math.random() * 8999)}`,
-      birimId: "fen-isleri",
-      baslik,
-      aciklama,
-      mahalle,
-      adres,
-      oncelik: oncelik as Vaka["oncelik"],
-      durum: "yeni",
-      olusturmaZamani: new Date().toISOString(),
-      kategori,
-      koordinat: { lat: 38.42 + (Math.random() - 0.5) * 0.02, lng: 27.14 + (Math.random() - 0.5) * 0.03 },
-    };
-
-    onAdd(yeni);
-    setBaslik("");
-    setAciklama("");
-    setMahalle("");
-    setAdres("");
-    setKategori("Yol");
-    setOncelik("orta");
-
-    toast({
-      title: "Vaka oluşturuldu",
-      description: `${yeni.id} numaralı vaka sisteme eklendi ve operasyon merkezine bildirildi.`,
-    });
-  }
-
-  return (
-    <div className="max-w-2xl">
-      <div className="rounded-xl border border-slate-700/60 bg-slate-800/30 p-5 sm:p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <Wrench className="w-4 h-4 text-blue-400" />
-          <h2 className="text-base font-semibold text-white">Yeni Vaka Oluştur</h2>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label className="text-xs font-mono uppercase tracking-wider text-slate-400">
-              Başlık *
-            </Label>
-            <Input
-              value={baslik}
-              onChange={(e) => setBaslik(e.target.value)}
-              placeholder="Örn: Yol çukuru — İnönü Cad."
-              className="mt-1.5 h-10 bg-slate-900/40 border-slate-700 text-white placeholder:text-slate-600 focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <Label className="text-xs font-mono uppercase tracking-wider text-slate-400">
-              Açıklama *
-            </Label>
-            <Textarea
-              value={aciklama}
-              onChange={(e) => setAciklama(e.target.value)}
-              placeholder="Vakanın detaylı açıklaması..."
-              className="mt-1.5 bg-slate-900/40 border-slate-700 text-white placeholder:text-slate-600 focus:border-blue-500 min-h-[80px]"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs font-mono uppercase tracking-wider text-slate-400">
-                Mahalle *
-              </Label>
-              <Select value={mahalle} onValueChange={setMahalle}>
-                <SelectTrigger className="mt-1.5 h-10 bg-slate-900/40 border-slate-700 text-white">
-                  <SelectValue placeholder="Mahalle seçin" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#151E2E] border-slate-700">
-                  {MAHALLELER.map((m) => (
-                    <SelectItem key={m.id} value={m.ad} className="text-white focus:bg-slate-700">
-                      {m.ad}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-xs font-mono uppercase tracking-wider text-slate-400">
-                Adres *
-              </Label>
-              <Input
-                value={adres}
-                onChange={(e) => setAdres(e.target.value)}
-                placeholder="Sokak, kapı no..."
-                className="mt-1.5 h-10 bg-slate-900/40 border-slate-700 text-white placeholder:text-slate-600 focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs font-mono uppercase tracking-wider text-slate-400">
-                Kategori
-              </Label>
-              <Select value={kategori} onValueChange={setKategori}>
-                <SelectTrigger className="mt-1.5 h-10 bg-slate-900/40 border-slate-700 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-[#151E2E] border-slate-700">
-                  <SelectItem value="Yol" className="text-white focus:bg-slate-700">Yol</SelectItem>
-                  <SelectItem value="Kaldırım" className="text-white focus:bg-slate-700">Kaldırım</SelectItem>
-                  <SelectItem value="Parke" className="text-white focus:bg-slate-700">Parke</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-xs font-mono uppercase tracking-wider text-slate-400">
-                Öncelik
-              </Label>
-              <Select value={oncelik} onValueChange={setOncelik}>
-                <SelectTrigger className="mt-1.5 h-10 bg-slate-900/40 border-slate-700 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-[#151E2E] border-slate-700">
-                  <SelectItem value="kritik" className="text-white focus:bg-slate-700">Kritik</SelectItem>
-                  <SelectItem value="yuksek" className="text-white focus:bg-slate-700">Yüksek</SelectItem>
-                  <SelectItem value="orta" className="text-white focus:bg-slate-700">Orta</SelectItem>
-                  <SelectItem value="dusuk" className="text-white focus:bg-slate-700">Düşük</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-2">
-            <Clock className="w-3 h-3" />
-            <span>
-              Bildiren: {userAd} (Sicil: {userSicil}) · {new Date().toLocaleString("tr-TR")}
-            </span>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-700/60">
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-slate-300 hover:text-white"
-              onClick={() => {
-                setBaslik("");
-                setAciklama("");
-                setMahalle("");
-                setAdres("");
-              }}
-            >
-              Temizle
-            </Button>
-            <Button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-3.5 h-3.5 mr-1.5" />
-              Vaka Oluştur
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}

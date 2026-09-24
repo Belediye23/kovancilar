@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Command,
   HardHat,
@@ -16,6 +16,7 @@ import {
   ShieldAlert,
   Clock,
   ChevronRight,
+  Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,11 +35,11 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { getBirim } from "@/lib/auth";
-import {
-  BILDIRIMLER,
-  formatTarih,
-} from "@/lib/mock-data";
+import { formatTarih } from "@/lib/mock-data";
+import { useOperasyonStore } from "@/lib/store";
+import { useNotifications } from "@/hooks/use-notifications";
 import type { BirimId, SessionUser, Bildirim } from "@/lib/types";
+import { BelediyeLogo } from "@/components/shared/belediye-logo";
 
 // Lucide ikon eşleştirme (birim ikonları)
 const BIRIM_IKONLAR: Record<BirimId, React.ComponentType<{ className?: string }>> = {
@@ -79,8 +80,21 @@ export function AppShell({
   const birim = useMemo(() => getBirim(user.birimId), [user.birimId]);
   const BirimIcon = BIRIM_IKONLAR[user.birimId];
 
-  const bildirimler: Bildirim[] = BILDIRIMLER;
+  // Zustand store'dan canlı bildirimler (mock-data yerine)
+  const bildirimler = useOperasyonStore((s) => s.bildirimler);
   const okunmamisBildirim = bildirimler.filter((b) => !b.okundu).length;
+
+  // Socket.io canlı bağlantı — broadcast fonksiyonunu store'a bağla
+  const { connected: wsConnected, bagliClientSayisi, broadcast, markAllBildirimOkundu: markAllRead } =
+    useNotifications(user);
+
+  // Store'a broadcast fonksiyonunu set et — mutasyonlar bunu çağıracak
+  const setBroadcastFn = useOperasyonStore((s) => s.setBroadcastFn);
+  useEffect(() => {
+    if (broadcast) {
+      setBroadcastFn(broadcast);
+    }
+  }, [broadcast, setBroadcastFn]);
 
   const initials = useMemo(() => {
     return user.adSoyad
@@ -171,6 +185,20 @@ export function AppShell({
             <span>{new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
           </div>
 
+          {/* WebSocket canlı bağlantı rozeti */}
+          <div
+            className={cn(
+              "hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono border",
+              wsConnected
+                ? "bg-emerald-500/[0.06] border-emerald-500/30 text-emerald-300"
+                : "bg-rose-500/[0.06] border-rose-500/30 text-rose-300"
+            )}
+            title={wsConnected ? `Canlı bağlantı aktif · ${bagliClientSayisi} kişi bağlı` : "Bağlantı yok — yerel mod"}
+          >
+            <Radio className={wsConnected ? "w-3 h-3 animate-pulse" : "w-3 h-3"} />
+            {wsConnected ? "CANLI" : "OFFLINE"}
+          </div>
+
           {/* Bildirimler */}
           <Popover>
             <PopoverTrigger asChild>
@@ -234,10 +262,30 @@ export function AppShell({
                   </div>
                 ))}
               </div>
-              <div className="px-4 py-2 border-t border-slate-800 text-center">
-                <button className="text-xs text-blue-400 hover:text-blue-300">
-                  Tümünü okundu olarak işaretle
-                </button>
+              <div className="px-4 py-2 border-t border-slate-800 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1">
+                  <span
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      wsConnected ? "bg-emerald-400 animate-pulse" : "bg-rose-400"
+                    )}
+                  />
+                  {wsConnected ? `CANLI · ${bagliClientSayisi} kişi` : "ÇEVRİMDIŞI"}
+                </span>
+                {okunmamisBildirim > 0 && (
+                  <button
+                    onClick={() => {
+                      markAllRead();
+                      toast({
+                        title: "Bildirimler okundu",
+                        description: `${okunmamisBildirim} bildirim okundu olarak işaretlendi.`,
+                      });
+                    }}
+                    className="text-xs text-blue-400 hover:text-blue-300"
+                  >
+                    Tümünü okundu yap
+                  </button>
+                )}
               </div>
             </PopoverContent>
           </Popover>
@@ -354,9 +402,7 @@ function SidebarLogo({
   return (
     <div className="px-4 py-4 border-b border-slate-800/80">
       <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600/30 to-blue-700/10 border border-blue-500/30 flex items-center justify-center">
-          <BirimIcon className="w-4 h-4 text-blue-400" />
-        </div>
+        <BelediyeLogo size={36} rounded="lg" showBackground={false} />
         <div className="min-w-0">
           <p className="text-[10px] text-slate-500 font-mono uppercase tracking-wider">
             KOVANCILAR BELEDİYESİ

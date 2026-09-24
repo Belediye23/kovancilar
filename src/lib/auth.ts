@@ -52,6 +52,14 @@ export function getBirim(id: BirimId): Birim {
 // --- Demo personel — birim bazlı şifre izolasyonu ---
 
 export const PERSONEL: Personel[] = [
+  // --- Sistem yöneticisi / Belediye Başkanı (tüm birimlere tam yetki) ---
+  {
+    sicil: "0001",
+    adSoyad: "Belediye Başkanı",
+    birimId: "operasyon",
+    rol: "Belediye Başkanı / Sistem Yöneticisi",
+    sifre: "kovancilar2026",
+  },
   {
     sicil: "1001",
     adSoyad: "Mehmet Yılmaz",

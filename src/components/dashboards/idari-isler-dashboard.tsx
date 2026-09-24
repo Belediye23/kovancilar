@@ -22,12 +22,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import {
-  EVRAKLAR,
-  VAKALAR,
-  formatTarih,
-} from "@/lib/mock-data";
-import { PERSONEL } from "@/lib/auth";
+import { formatTarih } from "@/lib/mock-data";
+import { useOperasyonStore } from "@/lib/store";
+import { PERSONEL, getBirim } from "@/lib/auth";
+import { generateAylıkFaaliyetRaporu } from "@/lib/pdf-rapor";
 import type { SessionUser, Evrak } from "@/lib/types";
 
 type Module = "genel" | "evrak" | "raporlar" | "arsiv" | "personel";
@@ -35,16 +33,20 @@ type Module = "genel" | "evrak" | "raporlar" | "arsiv" | "personel";
 export function IdariIslerDashboard({ user }: { user: SessionUser }) {
   const [module, setModule] = useState<Module>("genel");
 
+  // Zustand store'dan canlı veri
+  const EVRAKLAR = useOperasyonStore((s) => s.evraklar);
+  const tumVakalar = useOperasyonStore((s) => s.vakalar);
+
   const istatistik = useMemo(() => {
     return {
       toplamEvrak: EVRAKLAR.length,
       bekleyen: EVRAKLAR.filter((e) => e.durum === "bekliyor").length,
       islenen: EVRAKLAR.filter((e) => e.durum === "isleniyor").length,
       tamamlanan: EVRAKLAR.filter((e) => e.durum === "tamamlandi").length,
-      tumVakalar: VAKALAR.length,
+      tumVakalar: tumVakalar.length,
       tumPersonel: PERSONEL.length,
     };
-  }, []);
+  }, [EVRAKLAR, tumVakalar]);
 
   return (
     <div>
@@ -71,15 +73,38 @@ export function IdariIslerDashboard({ user }: { user: SessionUser }) {
             <Button
               size="sm"
               className="bg-blue-600 hover:bg-blue-700 h-9"
-              onClick={() =>
-                toast({
-                  title: "Aylık rapor hazır",
-                  description: "Eylül 2026 raporu taslak olarak kaydedildi.",
-                })
-              }
+              onClick={() => {
+                const ayYil = new Date().toLocaleDateString("tr-TR", {
+                  month: "long",
+                  year: "numeric",
+                });
+                try {
+                  generateAylıkFaaliyetRaporu({
+                    ayYil: ayYil.charAt(0).toUpperCase() + ayYil.slice(1),
+                    uretenAdSoyad: user.adSoyad,
+                    uretenSicil: user.sicil,
+                    uretenBirimAdi: getBirim(user.birimId).ad,
+                    vakalar: tumVakalar,
+                    evraklar: EVRAKLAR,
+                    ekipler: [],
+                    birimSayisi: 5,
+                    personelSayisi: PERSONEL.length,
+                  });
+                  toast({
+                    title: "Aylık rapor oluşturuldu ✓",
+                    description: `PDF dosyası indirildi — ${ayYil} dönemi.`,
+                  });
+                } catch (e) {
+                  toast({
+                    title: "Rapor üretilemedi",
+                    description: String(e),
+                    variant: "destructive",
+                  });
+                }
+              }}
             >
               <FileText className="w-3.5 h-3.5 mr-1.5" />
-              Aylık Rapor
+              Aylık Rapor (PDF)
             </Button>
           </>
         }
@@ -103,7 +128,9 @@ export function IdariIslerDashboard({ user }: { user: SessionUser }) {
         ))}
       </div>
 
-      {module === "genel" && <IdariGenelBakis istatistik={istatistik} />}
+      {module === "genel" && (
+        <IdariGenelBakis istatistik={istatistik} evraklar={EVRAKLAR} />
+      )}
       {module === "evrak" && <EvrakModulu />}
       {module === "raporlar" && <RaporlarModulu />}
       {module === "arsiv" && <ArsivModulu />}
@@ -122,8 +149,10 @@ const MODULES = [
 
 function IdariGenelBakis({
   istatistik,
+  evraklar,
 }: {
   istatistik: { toplamEvrak: number; bekleyen: number; islenen: number; tamamlanan: number; tumVakalar: number; tumPersonel: number };
+  evraklar: Evrak[];
 }) {
   return (
     <div className="space-y-5">
@@ -146,7 +175,7 @@ function IdariGenelBakis({
             <Clock className="w-4 h-4 text-amber-400" />
           </div>
           <div className="space-y-2">
-            {EVRAKLAR.filter((e) => e.durum === "bekliyor" || e.durum === "isleniyor").map((e) => (
+            {evraklar.filter((e) => e.durum === "bekliyor" || e.durum === "isleniyor").map((e) => (
               <div
                 key={e.id}
                 className="rounded-lg bg-slate-900/40 border border-slate-800 p-3"

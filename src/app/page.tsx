@@ -17,10 +17,7 @@ import {
   clearSession,
   getBirim,
 } from "@/lib/auth";
-import {
-  VAKALAR,
-  OPERASYON_OZEL_VAKALAR,
-} from "@/lib/mock-data";
+import { useOperasyonStore } from "@/lib/store";
 import type { BirimId, SessionUser } from "@/lib/types";
 import {
   Activity,
@@ -88,14 +85,16 @@ const BIRIM_MODULE_MAP: Record<BirimId, SidebarItem[]> = {
   ],
 };
 
-// Birim bazlı vaka sayacı (sidebar'da gösterilecek)
-function getBirimVakaSayisi(birimId: BirimId): number {
+// Birim bazlı vaka sayacı — Zustand store'dan canlı veri alır
+// (mock-data yerine; yeni vakalar sidebar'da anlık sayılır)
+function useBirimVakaSayisi(birimId: BirimId): number {
+  const vakalar = useOperasyonStore((s) => s.vakalar);
   if (birimId === "operasyon") {
-    return [...VAKALAR, ...OPERASYON_OZEL_VAKALAR].filter(
+    return vakalar.filter(
       (v) => v.durum !== "cozuldu" && v.durum !== "iptal"
     ).length;
   }
-  return VAKALAR.filter(
+  return vakalar.filter(
     (v) => v.birimId === birimId && v.durum !== "cozuldu" && v.durum !== "iptal"
   ).length;
 }
@@ -105,6 +104,10 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [activeModule, setActiveModule] = useState<string>("genel");
+
+  // Canlı vaka sayacı — erken dönüşlerden önce çağrılması zorunlu (hook kuralı)
+  // user null ise bu değer login ekranında kullanılmaz, ama hook çağrı sırası korunur
+  const acikVakaSayisi = useBirimVakaSayisi(user?.birimId ?? "operasyon");
 
   useEffect(() => {
     // Mount tespiti — Next.js'te 'use client' bileşeninde localStorage erişimi
@@ -155,13 +158,20 @@ export default function Home() {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
-  // Birim paneli
+  // Birim paneli — Zustand store'dan canlı vaka sayısı (hook yukarıda çağrıldı)
   const birim = getBirim(user.birimId);
   const sidebarItems: SidebarItem[] = BIRIM_MODULE_MAP[user.birimId].map(
     (item) => {
-      if (item.id === "vakalar" || item.id === "sikayetler" || item.id === "yol" || item.id === "kaldirim" || item.id === "parke" || item.id === "su-ariza" || item.id === "kanalizasyon") {
-        const sayi = getBirimVakaSayisi(user.birimId);
-        if (sayi > 0) return { ...item, count: sayi };
+      if (
+        item.id === "vakalar" ||
+        item.id === "sikayetler" ||
+        item.id === "yol" ||
+        item.id === "kaldirim" ||
+        item.id === "parke" ||
+        item.id === "su-ariza" ||
+        item.id === "kanalizasyon"
+      ) {
+        if (acikVakaSayisi > 0) return { ...item, count: acikVakaSayisi };
       }
       return item;
     }

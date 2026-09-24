@@ -23,24 +23,18 @@ import { VakaKarti } from "@/components/shared/vaka-karti";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import {
-  VAKALAR,
-  OPERASYON_OZEL_VAKALAR,
-  EKIPLER,
-  ARAÇLAR,
-  MAHALLELER,
-  formatTarih,
-} from "@/lib/mock-data";
-import type { SessionUser, Vaka } from "@/lib/types";
+import { ARAÇLAR, MAHALLELER, formatTarih } from "@/lib/mock-data";
+import { useOperasyonStore } from "@/lib/store";
+import type { SessionUser, Vaka, Ekip } from "@/lib/types";
 
 type Module = "genel" | "harita" | "ekipler" | "araclar" | "vakalar" | "raporlar";
 
 export function OperasyonDashboard({ user }: { user: SessionUser }) {
   const [module, setModule] = useState<Module>("genel");
 
-  const tumVakalar = useMemo(() => {
-    return [...VAKALAR, ...OPERASYON_OZEL_VAKALAR];
-  }, []);
+  // Zustand store'dan canlı veri al
+  const tumVakalar = useOperasyonStore((s) => s.vakalar);
+  const EKIPLER = useOperasyonStore((s) => s.ekipler);
 
   const istatistik = useMemo(() => {
     const tum = tumVakalar;
@@ -137,6 +131,7 @@ export function OperasyonDashboard({ user }: { user: SessionUser }) {
           tumVakalar={tumVakalar}
           aktifEkipler={aktifEkipler}
           musaitEkipler={musaitEkipler}
+          toplamEkip={EKIPLER.length}
           gorevdeAraclar={gorevdeAraclar}
         />
       )}
@@ -168,6 +163,7 @@ function GenelBakis({
   tumVakalar,
   aktifEkipler,
   musaitEkipler,
+  toplamEkip,
   gorevdeAraclar,
 }: {
   istatistik: { toplam: number; acil: number; devam: number; cozuldu: number; yeni: number; atanan: number };
@@ -175,6 +171,7 @@ function GenelBakis({
   tumVakalar: Vaka[];
   aktifEkipler: number;
   musaitEkipler: number;
+  toplamEkip: number;
   gorevdeAraclar: number;
 }) {
   const sonVakalar = [...tumVakalar]
@@ -195,7 +192,7 @@ function GenelBakis({
 
       {/* Ekip + Araç satırı */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatCard label="Görevdeki Ekipler" value={`${aktifEkipler}/${EKIPLER.length}`} icon={Users} hint={`${musaitEkipler} ekip müsait bekliyor`} />
+        <StatCard label="Görevdeki Ekipler" value={`${aktifEkipler}/${toplamEkip}`} icon={Users} hint={`${musaitEkipler} ekip müsait bekliyor`} />
         <StatCard label="Görevdeki Araçlar" value={`${gorevdeAraclar}/${ARAÇLAR.length}`} icon={Truck} />
         <StatCard label="Aktif Mahalle" value={MAHALLELER.filter((m) => m.vakaSayisi > 0).length} icon={Building2} hint={`${MAHALLELER.length} mahalle toplam`} />
       </div>
@@ -278,11 +275,12 @@ function HaritaModulu({
 // --- Ekipler modülü ---
 
 function EkiplerModulu() {
+  const ekipler = useOperasyonStore((s) => s.ekipler);
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
         <p className="text-[11px] font-mono uppercase tracking-wider text-slate-500">
-          TÜM BİRİM EKİPLERİ — {EKIPLER.length} EKİP
+          TÜM BİRİM EKİPLERİ — {ekipler.length} EKİP
         </p>
         <Button size="sm" variant="ghost" className="text-slate-300 hover:text-white">
           <Users className="w-3.5 h-3.5 mr-1.5" />
@@ -290,7 +288,7 @@ function EkiplerModulu() {
         </Button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {EKIPLER.map((ekip) => (
+        {ekipler.map((ekip) => (
           <EkipKarti key={ekip.id} ekip={ekip} />
         ))}
       </div>
@@ -298,7 +296,7 @@ function EkiplerModulu() {
   );
 }
 
-function EkipKarti({ ekip }: { ekip: typeof EKIPLER[number] }) {
+function EkipKarti({ ekip }: { ekip: Ekip }) {
   const durumRenk: Record<string, string> = {
     gorevde: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
     musait: "text-blue-400 bg-blue-500/10 border-blue-500/30",

@@ -20,26 +20,31 @@ import {
 import { DashboardHeader, StatCard } from "@/components/app-shell";
 import { MiniHarita } from "@/components/shared/mini-harita";
 import { VakaKarti } from "@/components/shared/vaka-karti";
+import { YeniVakaFormu } from "@/components/shared/yeni-vaka-formu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import {
-  VAKALAR,
-  EKIPLER,
-  DENETIM_KAYITLARI,
-  formatTarih,
-} from "@/lib/mock-data";
-import type { SessionUser } from "@/lib/types";
+import { formatTarih } from "@/lib/mock-data";
+import { useOperasyonStore } from "@/lib/store";
+import type { SessionUser, Vaka } from "@/lib/types";
 
-type Module = "genel" | "denetimler" | "cezalar" | "sikayetler" | "ekipler";
+type Module = "genel" | "denetimler" | "cezalar" | "sikayetler" | "ekipler" | "yeni-vaka";
 
 export function ZabitaDashboard({ user }: { user: SessionUser }) {
   const [module, setModule] = useState<Module>("genel");
 
+  // Zustand store'dan canlı veri
+  const allVakalar = useOperasyonStore((s) => s.vakalar);
+  const allEkipler = useOperasyonStore((s) => s.ekipler);
+  const DENETIM_KAYITLARI = useOperasyonStore((s) => s.denetimler);
   const vakalar = useMemo(
-    () => VAKALAR.filter((v) => v.birimId === "zabita"),
-    []
+    () => allVakalar.filter((v) => v.birimId === "zabita"),
+    [allVakalar]
+  );
+  const EKIPLER = useMemo(
+    () => allEkipler.filter((e) => e.birimId === "zabita"),
+    [allEkipler]
   );
 
   const istatistik = useMemo(() => {
@@ -55,7 +60,7 @@ export function ZabitaDashboard({ user }: { user: SessionUser }) {
       uyariSayi: DENETIM_KAYITLARI.filter((d) => d.sonuc === "uyari").length,
       uygunSayi: DENETIM_KAYITLARI.filter((d) => d.sonuc === "uygun").length,
     };
-  }, [vakalar]);
+  }, [vakalar, DENETIM_KAYITLARI]);
 
   const haritaNoktalari = useMemo(() => {
     return vakalar
@@ -136,6 +141,14 @@ export function ZabitaDashboard({ user }: { user: SessionUser }) {
       {module === "cezalar" && <CezalarModulu />}
       {module === "sikayetler" && <SikayetlerModulu vakalar={vakalar} />}
       {module === "ekipler" && <ZabitaEkiplerModulu />}
+      {module === "yeni-vaka" && (
+        <YeniVakaFormu
+          user={user}
+          birimId="zabita"
+          kategoriler={["İşgal", "Gürültü", "Ruhsat", "Çevre"]}
+          defaultKategori="İşgal"
+        />
+      )}
     </div>
   );
 }
@@ -146,6 +159,7 @@ const MODULES = [
   { id: "cezalar", label: "Ceza Kayıtları", ikon: AlertTriangle },
   { id: "sikayetler", label: "Şikayetler", ikon: FileText },
   { id: "ekipler", label: "Saha Ekipleri", ikon: Users },
+  { id: "yeni-vaka", label: "Yeni Vaka", ikon: Plus },
 ] as const;
 
 function ZabitaGenelBakis({
@@ -155,7 +169,7 @@ function ZabitaGenelBakis({
 }: {
   istatistik: { toplamVaka: number; acil: number; cozuldu: number; devam: number; denetimSayi: number; cezaSayi: number; uyariSayi: number; uygunSayi: number };
   haritaNoktalari: { lat: number; lng: number; etiket?: string; oncelik?: string }[];
-  vakalar: typeof VAKALAR;
+  vakalar: Vaka[];
 }) {
   const sonVakalar = [...vakalar]
     .sort((a, b) => new Date(b.olusturmaZamani).getTime() - new Date(a.olusturmaZamani).getTime())
@@ -338,7 +352,7 @@ function CezalarModulu() {
   );
 }
 
-function SikayetlerModulu({ vakalar }: { vakalar: typeof VAKALAR }) {
+function SikayetlerModulu({ vakalar }: { vakalar: Vaka[] }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
       {vakalar.map((v) => (
