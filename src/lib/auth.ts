@@ -49,90 +49,109 @@ export function getBirim(id: BirimId): Birim {
   return BIRIMLER.find((b) => b.id === id) ?? BIRIMLER[0];
 }
 
-// --- Demo personel — birim bazlı şifre izolasyonu ---
+// --- Yönetici hesapları — her birimde tek sicil 0001 ---
+
+// Varsayılan şifre — kullanıcı sonradan her birim için değiştirebilir.
+// Değiştirilen şifreler localStorage'da saklanır.
+export const VARSAYILAN_SIFRE = "123456789";
 
 export const PERSONEL: Personel[] = [
-  // --- Sistem yöneticisi / Belediye Başkanı (tüm birimlere tam yetki) ---
+  // --- Operasyon Merkezi — Belediye Başkanı (tüm birimlere tam yetki) ---
   {
     sicil: "0001",
     adSoyad: "Belediye Başkanı",
     birimId: "operasyon",
     rol: "Belediye Başkanı / Sistem Yöneticisi",
-    sifre: "kovancilar2026",
+    sifre: VARSAYILAN_SIFRE,
   },
+  // --- Fen İşleri Müdürü ---
   {
-    sicil: "1001",
-    adSoyad: "Mehmet Yılmaz",
-    birimId: "operasyon",
-    rol: "Operasyon Müdürü",
-    sifre: "demo1234",
-  },
-  {
-    sicil: "1002",
-    adSoyad: "Selin Kaya",
-    birimId: "operasyon",
-    rol: "Komuta Operatörü",
-    sifre: "demo1234",
-  },
-  {
-    sicil: "2001",
-    adSoyad: "Ahmet Demir",
+    sicil: "0001",
+    adSoyad: "Fen İşleri Müdürü",
     birimId: "fen-isleri",
-    rol: "Fen Eksperi",
-    sifre: "fen12345",
+    rol: "Fen İşleri Yöneticisi",
+    sifre: VARSAYILAN_SIFRE,
   },
+  // --- Zabıta Müdürü ---
   {
-    sicil: "2002",
-    adSoyad: "Veli Şahin",
-    birimId: "fen-isleri",
-    rol: "Saha Şefi",
-    sifre: "fen12345",
-  },
-  {
-    sicil: "3001",
-    adSoyad: "Hasan Aslan",
+    sicil: "0001",
+    adSoyad: "Zabıta Müdürü",
     birimId: "zabita",
-    rol: "Zabıta Amiri",
-    sifre: "zabita123",
+    rol: "Zabıta Yöneticisi",
+    sifre: VARSAYILAN_SIFRE,
   },
+  // --- Altyapı Koordinasyon Müdürü ---
   {
-    sicil: "3002",
-    adSoyad: "Elif Çelik",
-    birimId: "zabita",
-    rol: "Büro Memuru",
-    sifre: "zabita123",
-  },
-  {
-    sicil: "4001",
-    adSoyad: "Ayşe Koç",
+    sicil: "0001",
+    adSoyad: "Altyapı Müdürü",
     birimId: "altyapi",
-    rol: "Altyapı Mühendisi",
-    sifre: "altyapi1",
+    rol: "Altyapı Yöneticisi",
+    sifre: VARSAYILAN_SIFRE,
   },
+  // --- İdari İşler Müdürü ---
   {
-    sicil: "4002",
-    adSoyad: "Murat Aksoy",
-    birimId: "altyapi",
-    rol: "Saha Teknisyeni",
-    sifre: "altyapi1",
-  },
-  {
-    sicil: "5001",
-    adSoyad: "Fatma Erdoğan",
+    sicil: "0001",
+    adSoyad: "İdari İşler Müdürü",
     birimId: "idari-isler",
-    rol: "İdari İşler Sorumlusu",
-    sifre: "idari123",
-  },
-  {
-    sicil: "5002",
-    adSoyad: "Ömer Yıldırım",
-    birimId: "idari-isler",
-    rol: "Kayıt Memuru",
-    sifre: "idari123",
+    rol: "İdari İşler Yöneticisi",
+    sifre: VARSAYILAN_SIFRE,
   },
 ];
 
-// --- Kimlik doğrulama (localStorage tabanlı, demo amaçlı) ---
+// --- Custom şifre yönetimi (localStorage) ---
+// Kullanıcı şifre değiştirdiğinde buraya kaydedilir.
+// Key: "birimId:sicil", Value: yeni şifre
+
+const SIFRE_KEY = "kovancilar_bsm_sifreler";
+
+function loadCustomSifreler(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(SIFRE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+function saveCustomSifreler(map: Record<string, string>): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(SIFRE_KEY, JSON.stringify(map));
+}
+
+// Bir personelin aktif şifresini döndürür — varsa custom, yoksa varsayılan
+export function getAktifSifre(birimId: BirimId, sicil: string): string {
+  const map = loadCustomSifreler();
+  return map[`${birimId}:${sicil}`] ?? VARSAYILAN_SIFRE;
+}
+
+// Şifre değiştir — yeni şifreyi localStorage'a kaydeder
+export function changeSifre(
+  birimId: BirimId,
+  sicil: string,
+  yeniSifre: string
+): { ok: boolean; error?: string } {
+  if (yeniSifre.length < 4) {
+    return { ok: false, error: "Yeni şifre en az 4 karakter olmalı." };
+  }
+  const map = loadCustomSifreler();
+  map[`${birimId}:${sicil}`] = yeniSifre;
+  saveCustomSifreler(map);
+  return { ok: true };
+}
+
+// Şifreyi varsayılana sıfırla
+export function resetSifre(
+  birimId: BirimId,
+  sicil: string
+): void {
+  const map = loadCustomSifreler();
+  delete map[`${birimId}:${sicil}`];
+  saveCustomSifreler(map);
+}
+
+// --- Kimlik doğrulama (localStorage tabanlı) ---
 
 const SESSION_KEY = "kovancilar_bsm_session";
 
@@ -186,13 +205,16 @@ export function authenticate(
     };
   }
 
+  // Aktif şifre — custom varsa onu kullan, yoksa varsayılan
+  const aktifSifre = getAktifSifre(user.birimId, user.sicil);
+
   // Şifre karşılaştırma — Türkçe karakter normalizasyonu ile
-  // "kovancilar2026" == "kovancılar2026" == "KOVANCILAR2026"
-  if (normalizeTr(user.sifre) !== normalizeTr(sifreTrimmed)) {
+  // "123456789" == "123456789", "kovancilar2026" == "kovancılar2026" == "KOVANCILAR2026"
+  if (normalizeTr(aktifSifre) !== normalizeTr(sifreTrimmed)) {
     return {
       ok: false,
       error:
-        "Şifre hatalı. Türkçe karakter veya büyük/küçük harf farkı olmamalı; yine de tekrar deneyin. İpucu: kovancilar2026 (ı veya i, fark etmez).",
+        "Şifre hatalı. Varsayılan şifre: 123456789. Şifreyi değiştirdiyseniz yeni şifrenizi girin. Türkçe karakter/büyük-küçük harf farkı önemli değildir.",
     };
   }
 
