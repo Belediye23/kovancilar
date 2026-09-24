@@ -57,9 +57,22 @@ interface OperasyonState {
   assignEkipToVaka: (id: string, ekipId: string, personel?: string) => void;
   changeVakaDurum: (id: string, durum: VakaDurum, not?: string) => void;
   closeVaka: (id: string, cozumNotu: string) => void;
+  deleteVaka: (id: string) => void;
 
   // Mutasyonlar — Ekip
   updateEkipDurum: (id: string, durum: Ekip["durum"]) => void;
+  addEkip: (ekip: Ekip) => void;
+  deleteEkip: (id: string) => void;
+
+  // Mutasyonlar — Mahalle
+  mahalleler: typeof MAHALLELER;
+  addMahalle: (mahalle: { id: string; ad: string; nufus: number; vakaSayisi: number }) => void;
+  deleteMahalle: (id: string) => void;
+
+  // Mutasyonlar — Araç
+  araclar: typeof ARAÇLAR;
+  addArac: (arac: typeof ARAÇLAR[number]) => void;
+  deleteArac: (id: string) => void;
 
   // Mutasyonlar — Bildirim
   addBildirim: (bildirim: Bildirim) => void;
@@ -69,6 +82,7 @@ interface OperasyonState {
   // Mutasyonlar — Evrak
   addEvrak: (evrak: Evrak) => void;
   updateEvrakDurum: (id: string, durum: Evrak["durum"]) => void;
+  deleteEvrak: (id: string) => void;
 
   // Yardımcılar
   getVakalarByBirim: (birimId: BirimId) => Vaka[];
@@ -85,6 +99,8 @@ const initialState = {
   denetimler: DENETIM_KAYITLARI,
   suAriza: SU_ARIZA,
   evraklar: EVRAKLAR,
+  mahalleler: MAHALLELER,
+  araclar: ARAÇLAR,
 };
 
 export const useOperasyonStore = create<OperasyonState>()(
@@ -259,6 +275,31 @@ export const useOperasyonStore = create<OperasyonState>()(
         }
       },
 
+      // Vaka silme — kalıcı olarak kaldırır (geri alınamaz)
+      deleteVaka: (id) => {
+        // Önce silinecek vakayı bul (hala store'da varken)
+        const vaka = get().vakalar.find((v) => v.id === id);
+        set((s) => ({
+          vakalar: s.vakalar.filter((v) => v.id !== id),
+        }));
+        // İlgili ekip müsait hale gelsin
+        if (vaka?.atananEkip) {
+          set((s) => ({
+            ekipler: s.ekipler.map((e) =>
+              e.id === vaka.atananEkip ? { ...e, durum: "musait" } : e
+            ),
+          }));
+        }
+        get().addBildirim({
+          id: `B-${Date.now()}`,
+          baslik: "Vaka silindi",
+          icerik: `${id} kaydı sistemden kalıcı olarak kaldırıldı.`,
+          seviye: "uyari",
+          zaman: new Date().toISOString(),
+          okundu: false,
+        });
+      },
+
       // --- Ekip mutasyonları ---
 
       updateEkipDurum: (id, durum) =>
@@ -266,6 +307,34 @@ export const useOperasyonStore = create<OperasyonState>()(
           ekipler: s.ekipler.map((e) =>
             e.id === id ? { ...e, durum } : e
           ),
+        })),
+
+      addEkip: (ekip) =>
+        set((s) => ({ ekipler: [ekip, ...s.ekipler] })),
+
+      deleteEkip: (id) =>
+        set((s) => ({
+          ekipler: s.ekipler.filter((e) => e.id !== id),
+        })),
+
+      // --- Mahalle mutasyonları ---
+
+      addMahalle: (mahalle) =>
+        set((s) => ({ mahalleler: [...s.mahalleler, mahalle] })),
+
+      deleteMahalle: (id) =>
+        set((s) => ({
+          mahalleler: s.mahalleler.filter((m) => m.id !== id),
+        })),
+
+      // --- Araç mutasyonları ---
+
+      addArac: (arac) =>
+        set((s) => ({ araclar: [arac, ...s.araclar] })),
+
+      deleteArac: (id) =>
+        set((s) => ({
+          araclar: s.araclar.filter((a) => a.id !== id),
         })),
 
       // --- Bildirim mutasyonları ---
@@ -299,6 +368,11 @@ export const useOperasyonStore = create<OperasyonState>()(
           ),
         })),
 
+      deleteEvrak: (id) =>
+        set((s) => ({
+          evraklar: s.evraklar.filter((e) => e.id !== id),
+        })),
+
       // --- Yardımcılar ---
 
       getVakalarByBirim: (birimId) => {
@@ -325,8 +399,10 @@ export const useOperasyonStore = create<OperasyonState>()(
         denetimler: s.denetimler,
         suAriza: s.suAriza,
         evraklar: s.evraklar,
+        mahalleler: s.mahalleler,
+        araclar: s.araclar,
       }),
-      version: 2,
+      version: 3,
     }
   )
 );

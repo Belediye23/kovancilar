@@ -30,8 +30,21 @@ import type { SessionUser, Evrak } from "@/lib/types";
 
 type Module = "genel" | "evrak" | "raporlar" | "arsiv" | "personel";
 
-export function IdariIslerDashboard({ user }: { user: SessionUser }) {
-  const [module, setModule] = useState<Module>("genel");
+export function IdariIslerDashboard({
+  user,
+  activeModule: externalModule,
+  onModuleChange,
+}: {
+  user: SessionUser;
+  activeModule?: string;
+  onModuleChange?: (id: string) => void;
+}) {
+  const [internalModule, setInternalModule] = useState<Module>("genel");
+  const aktifModul = (externalModule as Module) ?? internalModule;
+  const setAktifModul = (m: Module) => {
+    setInternalModule(m);
+    onModuleChange?.(m);
+  };
 
   // Zustand store'dan canlı veri
   const EVRAKLAR = useOperasyonStore((s) => s.evraklar);
@@ -73,13 +86,17 @@ export function IdariIslerDashboard({ user }: { user: SessionUser }) {
             <Button
               size="sm"
               className="bg-blue-600 hover:bg-blue-700 h-9"
-              onClick={() => {
+              onClick={async () => {
                 const ayYil = new Date().toLocaleDateString("tr-TR", {
                   month: "long",
                   year: "numeric",
                 });
                 try {
-                  generateAylıkFaaliyetRaporu({
+                  toast({
+                    title: "PDF hazırlanıyor...",
+                    description: "Türkçe font yüklenip rapor oluşturuluyor.",
+                  });
+                  await generateAylıkFaaliyetRaporu({
                     ayYil: ayYil.charAt(0).toUpperCase() + ayYil.slice(1),
                     uretenAdSoyad: user.adSoyad,
                     uretenSicil: user.sicil,
@@ -92,7 +109,7 @@ export function IdariIslerDashboard({ user }: { user: SessionUser }) {
                   });
                   toast({
                     title: "Aylık rapor oluşturuldu ✓",
-                    description: `PDF dosyası indirildi — ${ayYil} dönemi.`,
+                    description: `PDF dosyası indirildi — ${ayYil} dönemi. Türkçe karakter desteği aktif.`,
                   });
                 } catch (e) {
                   toast({
@@ -114,10 +131,10 @@ export function IdariIslerDashboard({ user }: { user: SessionUser }) {
         {MODULES.map((m) => (
           <button
             key={m.id}
-            onClick={() => setModule(m.id as Module)}
+            onClick={() => setAktifModul(m.id as Module)}
             className={cn(
               "px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
-              module === m.id
+              aktifModul === m.id
                 ? "border-blue-500 text-white"
                 : "border-transparent text-slate-400 hover:text-slate-100"
             )}
@@ -128,13 +145,13 @@ export function IdariIslerDashboard({ user }: { user: SessionUser }) {
         ))}
       </div>
 
-      {module === "genel" && (
+      {aktifModul === "genel" && (
         <IdariGenelBakis istatistik={istatistik} evraklar={EVRAKLAR} />
       )}
-      {module === "evrak" && <EvrakModulu />}
-      {module === "raporlar" && <RaporlarModulu />}
-      {module === "arsiv" && <ArsivModulu />}
-      {module === "personel" && <PersonelModulu />}
+      {aktifModul === "evrak" && <EvrakModulu />}
+      {aktifModul === "raporlar" && <RaporlarModulu />}
+      {aktifModul === "arsiv" && <ArsivModulu />}
+      {aktifModul === "personel" && <PersonelModulu />}
     </div>
   );
 }
@@ -284,6 +301,7 @@ function IdariGenelBakis({
 }
 
 function EvrakModulu() {
+  const EVRAKLAR = useOperasyonStore((s) => s.evraklar);
   const [search, setSearch] = useState("");
   const filtreli = EVRAKLAR.filter(
     (e) =>
@@ -435,6 +453,12 @@ function RaporlarModulu() {
                 size="sm"
                 variant="ghost"
                 className="h-7 text-xs text-slate-300 hover:text-white hover:bg-slate-700/40 flex-1"
+                onClick={() =>
+                  toast({
+                    title: r.baslik,
+                    description: `${r.id} · ${r.tip} · ${r.tarih}`,
+                  })
+                }
               >
                 Görüntüle
               </Button>
@@ -442,6 +466,32 @@ function RaporlarModulu() {
                 size="sm"
                 variant="ghost"
                 className="h-7 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                onClick={async () => {
+                  try {
+                    toast({ title: "Rapor PDF'i hazırlanıyor...", description: "Türkçe font yükleniyor..." });
+                    await generateAylıkFaaliyetRaporu({
+                      ayYil: r.baslik.replace("Aylık Faaliyet Raporu", "").trim() || "Rapor",
+                      uretenAdSoyad: user.adSoyad,
+                      uretenSicil: user.sicil,
+                      uretenBirimAdi: getBirim(user.birimId).ad,
+                      vakalar: tumVakalar,
+                      evraklar: EVRAKLAR,
+                      ekipler: [],
+                      birimSayisi: 5,
+                      personelSayisi: PERSONEL.length,
+                    });
+                    toast({
+                      title: "Rapor PDF'i indirildi ✓",
+                      description: r.baslik,
+                    });
+                  } catch (e) {
+                    toast({
+                      title: "Yazdırma hatası",
+                      description: String(e),
+                      variant: "destructive",
+                    });
+                  }
+                }}
               >
                 <Printer className="w-3 h-3" />
               </Button>

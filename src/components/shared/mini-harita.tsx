@@ -23,7 +23,7 @@ const Popup = dynamic(
   { ssr: false }
 );
 
-// Leaflet CSS — global yüklenmemişse burada import et
+// Leaflet CSS
 import "leaflet/dist/leaflet.css";
 
 interface MiniHaritaProps {
@@ -53,20 +53,22 @@ export function MiniHarita({
   const h = typeof height === "number" ? height : 280;
   const merkezM = KOVANCILAR_KOORDINAT;
 
-  // Kuzey/güney/doğu/batı sınırları — tüm noktaları kapsayacak şekilde hesapla
+  // Kovancılar merkezli, tüm noktaları kapsayan bounds hesapla
   const bounds = useMemo(() => {
     if (noktalar.length === 0) {
+      // Varsayılan: Kovancılar merkezde, ufak bir alan (~1km)
       return [
-        [merkezM.lat - 0.005, merkezM.lng - 0.005],
-        [merkezM.lat + 0.005, merkezM.lng + 0.005],
+        [merkezM.lat - 0.008, merkezM.lng - 0.012],
+        [merkezM.lat + 0.008, merkezM.lng + 0.012],
       ] as [[number, number], [number, number]];
     }
     const lats = noktalar.map((n) => n.lat);
     const lngs = noktalar.map((n) => n.lng);
-    const minLat = Math.min(...lats, merkezM.lat - 0.003);
-    const maxLat = Math.max(...lats, merkezM.lat + 0.003);
-    const minLng = Math.min(...lngs, merkezM.lng - 0.003);
-    const maxLng = Math.max(...lngs, merkezM.lng + 0.003);
+    // Kovancılar merkezini de dahil et — her zaman görünsün
+    const minLat = Math.min(...lats, merkezM.lat - 0.005);
+    const maxLat = Math.max(...lats, merkezM.lat + 0.005);
+    const minLng = Math.min(...lngs, merkezM.lng - 0.008);
+    const maxLng = Math.max(...lngs, merkezM.lng + 0.008);
     return [
       [minLat, minLng],
       [maxLat, maxLng],
@@ -80,20 +82,21 @@ export function MiniHarita({
     >
       <MapContainer
         center={[merkezM.lat, merkezM.lng]}
-        zoom={15}
-        scrollWheelZoom={false}
+        zoom={14}
+        scrollWheelZoom={true}
         style={{ width: "100%", height: "100%", background: "#0F1623" }}
         bounds={bounds}
+        boundsOptions={{ padding: [30, 30] }}
       >
         <TileLayer
-          attribution='&copy; OpenStreetMap'
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {/* Belediye binası merkez nokta */}
         <CircleMarker
           center={[merkezM.lat, merkezM.lng]}
-          radius={8}
-          pathOptions={{ color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: 0.4 }}
+          radius={10}
+          pathOptions={{ color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: 0.4, weight: 3 }}
         >
           <Popup>
             <div className="text-xs">
@@ -112,7 +115,7 @@ export function MiniHarita({
             <CircleMarker
               key={i}
               center={[n.lat, n.lng]}
-              radius={6}
+              radius={7}
               pathOptions={{
                 color,
                 fillColor: color,

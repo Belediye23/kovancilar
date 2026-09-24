@@ -31,8 +31,21 @@ import type { SessionUser, Vaka } from "@/lib/types";
 
 type Module = "genel" | "denetimler" | "cezalar" | "sikayetler" | "ekipler" | "yeni-vaka";
 
-export function ZabitaDashboard({ user }: { user: SessionUser }) {
-  const [module, setModule] = useState<Module>("genel");
+export function ZabitaDashboard({
+  user,
+  activeModule: externalModule,
+  onModuleChange,
+}: {
+  user: SessionUser;
+  activeModule?: string;
+  onModuleChange?: (id: string) => void;
+}) {
+  const [internalModule, setInternalModule] = useState<Module>("genel");
+  const aktifModul = (externalModule as Module) ?? internalModule;
+  const setAktifModul = (m: Module) => {
+    setInternalModule(m);
+    onModuleChange?.(m);
+  };
 
   // Zustand store'dan canlı veri
   const allVakalar = useOperasyonStore((s) => s.vakalar);
@@ -116,10 +129,10 @@ export function ZabitaDashboard({ user }: { user: SessionUser }) {
         {MODULES.map((m) => (
           <button
             key={m.id}
-            onClick={() => setModule(m.id as Module)}
+            onClick={() => setAktifModul(m.id as Module)}
             className={cn(
               "px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
-              module === m.id
+              aktifModul === m.id
                 ? "border-blue-500 text-white"
                 : "border-transparent text-slate-400 hover:text-slate-100"
             )}
@@ -130,18 +143,18 @@ export function ZabitaDashboard({ user }: { user: SessionUser }) {
         ))}
       </div>
 
-      {module === "genel" && (
+      {aktifModul === "genel" && (
         <ZabitaGenelBakis
           istatistik={istatistik}
           haritaNoktalari={haritaNoktalari}
           vakalar={vakalar}
         />
       )}
-      {module === "denetimler" && <DenetimlerModulu />}
-      {module === "cezalar" && <CezalarModulu />}
-      {module === "sikayetler" && <SikayetlerModulu vakalar={vakalar} />}
-      {module === "ekipler" && <ZabitaEkiplerModulu />}
-      {module === "yeni-vaka" && (
+      {aktifModul === "denetimler" && <DenetimlerModulu />}
+      {aktifModul === "cezalar" && <CezalarModulu />}
+      {aktifModul === "sikayetler" && <SikayetlerModulu vakalar={vakalar} />}
+      {aktifModul === "ekipler" && <ZabitaEkiplerModulu />}
+      {aktifModul === "yeni-vaka" && (
         <YeniVakaFormu
           user={user}
           birimId="zabita"
@@ -216,6 +229,7 @@ function ZabitaGenelBakis({
 }
 
 function DenetimlerModulu() {
+  const DENETIM_KAYITLARI = useOperasyonStore((s) => s.denetimler);
   const [search, setSearch] = useState("");
   const filtreli = DENETIM_KAYITLARI.filter(
     (d) =>
@@ -312,6 +326,7 @@ function DenetimlerModulu() {
 }
 
 function CezalarModulu() {
+  const DENETIM_KAYITLARI = useOperasyonStore((s) => s.denetimler);
   const cezalar = DENETIM_KAYITLARI.filter((d) => d.sonuc === "ceza");
   return (
     <div className="space-y-3">
@@ -363,7 +378,8 @@ function SikayetlerModulu({ vakalar }: { vakalar: Vaka[] }) {
 }
 
 function ZabitaEkiplerModulu() {
-  const ekipler = EKIPLER.filter((e) => e.birimId === "zabita");
+  const allEkipler = useOperasyonStore((s) => s.ekipler);
+  const ekipler = allEkipler.filter((e) => e.birimId === "zabita");
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

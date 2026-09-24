@@ -29,8 +29,22 @@ import type { SessionUser, Vaka } from "@/lib/types";
 
 type Module = "genel" | "yol" | "kaldirim" | "parke" | "ekipler" | "yeni-vaka";
 
-export function FenIsleriDashboard({ user }: { user: SessionUser }) {
-  const [module, setModule] = useState<Module>("genel");
+export function FenIsleriDashboard({
+  user,
+  activeModule: externalModule,
+  onModuleChange,
+}: {
+  user: SessionUser;
+  activeModule?: string;
+  onModuleChange?: (id: string) => void;
+}) {
+  // Sidebar ile senkron — `module` değişken adı Next.js'te yasak, `aktifModul`
+  const [internalModule, setInternalModule] = useState<Module>("genel");
+  const aktifModul = (externalModule as Module) ?? internalModule;
+  const setAktifModul = (m: Module) => {
+    setInternalModule(m);
+    onModuleChange?.(m);
+  };
 
   // Zustand store'dan canlı veri al
   const allVakalar = useOperasyonStore((s) => s.vakalar);
@@ -80,7 +94,7 @@ export function FenIsleriDashboard({ user }: { user: SessionUser }) {
               variant="ghost"
               size="sm"
               className="text-slate-300 hover:text-white hover:bg-slate-800/60 h-9"
-              onClick={() => setModule("yeni-vaka")}
+              onClick={() => setAktifModul("yeni-vaka")}
             >
               <Plus className="w-3.5 h-3.5 mr-1.5" />
               Yeni Vaka
@@ -107,10 +121,10 @@ export function FenIsleriDashboard({ user }: { user: SessionUser }) {
         {MODULES.map((m) => (
           <button
             key={m.id}
-            onClick={() => setModule(m.id as Module)}
+            onClick={() => setAktifModul(m.id as Module)}
             className={cn(
               "px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
-              module === m.id
+              aktifModul === m.id
                 ? "border-blue-500 text-white"
                 : "border-transparent text-slate-400 hover:text-slate-100"
             )}
@@ -121,24 +135,39 @@ export function FenIsleriDashboard({ user }: { user: SessionUser }) {
         ))}
       </div>
 
-      {module === "genel" && (
+      {aktifModul === "genel" && (
         <FenGenelBakis
           istatistik={istatistik}
           haritaNoktalari={haritaNoktalari}
           vakalar={vakalar}
         />
       )}
-      {module === "yol" && (
-        <KategoriListesi vakalar={vakalar} kategori="Yol" ikon={Construction} />
+      {aktifModul === "yol" && (
+        <KategoriListesi
+          vakalar={vakalar}
+          kategori="Yol"
+          ikon={Construction}
+          onHaritadaGoster={() => setAktifModul("genel")}
+        />
       )}
-      {module === "kaldirim" && (
-        <KategoriListesi vakalar={vakalar} kategori="Kaldırım" ikon={Footprints} />
+      {aktifModul === "kaldirim" && (
+        <KategoriListesi
+          vakalar={vakalar}
+          kategori="Kaldırım"
+          ikon={Footprints}
+          onHaritadaGoster={() => setAktifModul("genel")}
+        />
       )}
-      {module === "parke" && (
-        <KategoriListesi vakalar={vakalar} kategori="Parke" ikon={Square} />
+      {aktifModul === "parke" && (
+        <KategoriListesi
+          vakalar={vakalar}
+          kategori="Parke"
+          ikon={Square}
+          onHaritadaGoster={() => setAktifModul("genel")}
+        />
       )}
-      {module === "ekipler" && <FenEkiplerModulu />}
-      {module === "yeni-vaka" && (
+      {aktifModul === "ekipler" && <FenEkiplerModulu />}
+      {aktifModul === "yeni-vaka" && (
         <YeniVakaFormuShared user={user} birimId="fen-isleri" />
       )}
     </div>
@@ -251,10 +280,12 @@ function KategoriListesi({
   vakalar,
   kategori,
   ikon: Icon,
+  onHaritadaGoster,
 }: {
   vakalar: Vaka[];
   kategori: string;
   ikon: React.ComponentType<{ className?: string }>;
+  onHaritadaGoster?: () => void;
 }) {
   const filtreli = vakalar.filter((v) => v.kategori === kategori);
   return (
@@ -265,7 +296,12 @@ function KategoriListesi({
           <p className="text-sm font-medium text-white">{kategori} vakaları</p>
           <span className="text-xs text-slate-500">({filtreli.length})</span>
         </div>
-        <Button size="sm" variant="ghost" className="text-slate-300 hover:text-white">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-slate-300 hover:text-white"
+          onClick={() => onHaritadaGoster?.()}
+        >
           <MapPin className="w-3.5 h-3.5 mr-1.5" />
           Haritada Göster
         </Button>
@@ -288,8 +324,11 @@ function KategoriListesi({
 }
 
 function FenEkiplerModulu() {
-  const ekipler = EKIPLER.filter((e) => e.birimId === "fen-isleri");
-  const araclar = VAKALAR; // placeholder
+  const allEkipler = useOperasyonStore((s) => s.ekipler);
+  const ekipler = useMemo(
+    () => allEkipler.filter((e) => e.birimId === "fen-isleri"),
+    [allEkipler]
+  );
 
   return (
     <div className="space-y-4">

@@ -52,6 +52,7 @@ const BIRIM_MODULE_MAP: Record<BirimId, SidebarItem[]> = {
     { id: "araclar", label: "Araç Filosu", ikon: Truck },
     { id: "vakalar", label: "Tüm Vakalar", ikon: AlertTriangle },
     { id: "raporlar", label: "Raporlar", ikon: FileBarChart },
+    { id: "yonetim", label: "Kayıt Yönetimi", ikon: Settings2 },
   ],
   "fen-isleri": [
     { id: "genel", label: "Genel Bakış", ikon: Activity },
@@ -185,23 +186,53 @@ export default function Home() {
       onModuleChange={setActiveModule}
       onLogout={handleLogout}
     >
-      {renderDashboard(user, activeModule)}
+      {renderDashboard(user, activeModule, setActiveModule)}
     </AppShell>
   );
 }
 
-function renderDashboard(user: SessionUser, module: string) {
+function renderDashboard(user: SessionUser, module: string, onModuleChange: (id: string) => void) {
   switch (user.birimId) {
     case "operasyon":
-      return <OperasyonDashboard user={user} />;
+      return (
+        <OperasyonDashboard
+          user={user}
+          activeModule={module}
+          onModuleChange={onModuleChange}
+        />
+      );
     case "fen-isleri":
-      return <FenIsleriDashboard user={user} />;
+      return (
+        <FenIsleriDashboard
+          user={user}
+          activeModule={module}
+          onModuleChange={onModuleChange}
+        />
+      );
     case "zabita":
-      return <ZabitaDashboard user={user} />;
+      return (
+        <ZabitaDashboard
+          user={user}
+          activeModule={module}
+          onModuleChange={onModuleChange}
+        />
+      );
     case "altyapi":
-      return <AltyapiDashboard user={user} />;
+      return (
+        <AltyapiDashboard
+          user={user}
+          activeModule={module}
+          onModuleChange={onModuleChange}
+        />
+      );
     case "idari-isler":
-      return <IdariIslerDashboard user={user} />;
+      return (
+        <IdariIslerDashboard
+          user={user}
+          activeModule={module}
+          onModuleChange={onModuleChange}
+        />
+      );
     default:
       return null;
   }

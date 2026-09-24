@@ -24,18 +24,32 @@ import { YeniVakaFormu } from "@/components/shared/yeni-vaka-formu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { SU_ARIZA, formatTarih } from "@/lib/mock-data";
+import { formatTarih } from "@/lib/mock-data";
 import { useOperasyonStore } from "@/lib/store";
 import type { SessionUser, Vaka } from "@/lib/types";
 
 type Module = "genel" | "su-ariza" | "kanalizasyon" | "vana-takip" | "ekipler" | "numune" | "yeni-vaka";
 
-export function AltyapiDashboard({ user }: { user: SessionUser }) {
-  const [module, setModule] = useState<Module>("genel");
+export function AltyapiDashboard({
+  user,
+  activeModule: externalModule,
+  onModuleChange,
+}: {
+  user: SessionUser;
+  activeModule?: string;
+  onModuleChange?: (id: string) => void;
+}) {
+  const [internalModule, setInternalModule] = useState<Module>("genel");
+  const aktifModul = (externalModule as Module) ?? internalModule;
+  const setAktifModul = (m: Module) => {
+    setInternalModule(m);
+    onModuleChange?.(m);
+  };
 
   // Zustand store'dan canlı veri
   const allVakalar = useOperasyonStore((s) => s.vakalar);
   const allEkipler = useOperasyonStore((s) => s.ekipler);
+  const SU_ARIZA = useOperasyonStore((s) => s.suAriza);
   const vakalar = useMemo(
     () => allVakalar.filter((v) => v.birimId === "altyapi"),
     [allVakalar]
@@ -56,7 +70,7 @@ export function AltyapiDashboard({ user }: { user: SessionUser }) {
       devam: SU_ARIZA.filter((s) => s.durum === "devam-ediyor").length,
       yeni: SU_ARIZA.filter((s) => s.durum === "yeni").length,
     };
-  }, [vakalar]);
+  }, [vakalar, SU_ARIZA]);
 
   const haritaNoktalari = useMemo(() => {
     return vakalar
@@ -112,10 +126,10 @@ export function AltyapiDashboard({ user }: { user: SessionUser }) {
         {MODULES.map((m) => (
           <button
             key={m.id}
-            onClick={() => setModule(m.id as Module)}
+            onClick={() => setAktifModul(m.id as Module)}
             className={cn(
               "px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
-              module === m.id
+              aktifModul === m.id
                 ? "border-blue-500 text-white"
                 : "border-transparent text-slate-400 hover:text-slate-100"
             )}
@@ -126,19 +140,19 @@ export function AltyapiDashboard({ user }: { user: SessionUser }) {
         ))}
       </div>
 
-      {module === "genel" && (
+      {aktifModul === "genel" && (
         <AltyapiGenelBakis
           istatistik={istatistik}
           haritaNoktalari={haritaNoktalari}
           vakalar={vakalar}
         />
       )}
-      {module === "su-ariza" && <SuArizaModulu />}
-      {module === "kanalizasyon" && <KanalizasyonModulu />}
-      {module === "vana-takip" && <VanaTakipModulu />}
-      {module === "ekipler" && <AltyapiEkiplerModulu />}
-      {module === "numune" && <NumuneModulu />}
-      {module === "yeni-vaka" && (
+      {aktifModul === "su-ariza" && <SuArizaModulu />}
+      {aktifModul === "kanalizasyon" && <KanalizasyonModulu />}
+      {aktifModul === "vana-takip" && <VanaTakipModulu />}
+      {aktifModul === "ekipler" && <AltyapiEkiplerModulu />}
+      {aktifModul === "numune" && <NumuneModulu />}
+      {aktifModul === "yeni-vaka" && (
         <YeniVakaFormu
           user={user}
           birimId="altyapi"
@@ -245,6 +259,7 @@ function AltyapiGenelBakis({
 }
 
 function SuArizaModulu() {
+  const SU_ARIZA = useOperasyonStore((s) => s.suAriza);
   const turRenk: Record<string, string> = {
     kirilma: "text-rose-400 bg-rose-500/10 border-rose-500/30",
     sizi: "text-amber-400 bg-amber-500/10 border-amber-500/30",
@@ -327,6 +342,7 @@ function SuArizaModulu() {
 }
 
 function KanalizasyonModulu() {
+  const SU_ARIZA = useOperasyonStore((s) => s.suAriza);
   const kanal = SU_ARIZA.filter((s) => s.tur === "tikanma" || s.tur === "koku");
   return (
     <div className="space-y-3">
@@ -446,7 +462,11 @@ function VanaTakipModulu() {
 }
 
 function AltyapiEkiplerModulu() {
-  const ekipler = EKIPLER.filter((e) => e.birimId === "altyapi");
+  const allEkipler = useOperasyonStore((s) => s.ekipler);
+  const ekipler = useMemo(
+    () => allEkipler.filter((e) => e.birimId === "altyapi"),
+    [allEkipler]
+  );
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

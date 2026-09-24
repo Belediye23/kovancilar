@@ -16,6 +16,8 @@ import {
   CheckCircle2,
   Ban,
   MessageSquare,
+  Trash2,
+  Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,8 +42,19 @@ import { formatTarih } from "@/lib/mock-data";
 import { OncelikRozet, DurumRozet } from "@/components/app-shell";
 import { useOperasyonStore } from "@/lib/store";
 import { getBirim } from "@/lib/auth";
+import { generateVakaPDF } from "@/lib/pdf-rapor";
 import type { Vaka, VakaDurum, BirimId } from "@/lib/types";
 import { toast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // --- VakaKarti: Açılır kapanır, interaktif vaka kartı ---
 
@@ -50,7 +63,7 @@ export function VakaKarti({ vaka }: { vaka: Vaka }) {
   const [assignOpen, setAssignOpen] = useState(false);
   const [closeOpen, setCloseOpen] = useState(false);
 
-  const { assignEkipToVaka, changeVakaDurum, closeVaka, ekipler } =
+  const { assignEkipToVaka, changeVakaDurum, closeVaka, deleteVaka, ekipler } =
     useOperasyonStore();
 
   // Birim bazlı ekip listesi — kendi birimi + operasyon tümünü görür
@@ -59,6 +72,7 @@ export function VakaKarti({ vaka }: { vaka: Vaka }) {
     () => ekipler.filter((e) => e.birimId === userBirim),
     [ekipler, userBirim]
   );
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   function handleDurumDegis(yeniDurum: VakaDurum) {
     changeVakaDurum(vaka.id, yeniDurum);
@@ -231,6 +245,40 @@ export function VakaKarti({ vaka }: { vaka: Vaka }) {
                 <FileText className="w-3 h-3 mr-1.5" />
                 Detay
               </Button>
+              {/* PDF çıktısı al — vaka detay belgesi */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs text-emerald-300 hover:text-emerald-200 hover:bg-emerald-500/10"
+                onClick={() => {
+                  try {
+                    generateVakaPDF(vaka);
+                    toast({
+                      title: "Vaka PDF'i oluşturuldu ✓",
+                      description: `${vaka.id} — vaka detay belgesi indirildi.`,
+                    });
+                  } catch (e) {
+                    toast({
+                      title: "PDF üretilemedi",
+                      description: String(e),
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                <Printer className="w-3 h-3 mr-1.5" />
+                PDF Çıktı
+              </Button>
+              {/* Sil — kalıcı silme, onay ister */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 text-xs text-rose-300 hover:text-rose-200 hover:bg-rose-500/10"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="w-3 h-3 mr-1.5" />
+                Sil
+              </Button>
             </div>
           </div>
         )}
@@ -266,6 +314,45 @@ export function VakaKarti({ vaka }: { vaka: Vaka }) {
           });
         }}
       />
+
+      {/* Silme onayı */}
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent className="bg-[#151E2E] border-slate-700 text-white max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-rose-400" />
+              Vakayı Sil
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              {vaka.id} — <span className="text-slate-200">{vaka.baslik}</span>
+              <br />
+              <br />
+              Bu işlem geri alınamaz. Vaka kaydı sistemden kalıcı olarak
+              kaldırılacak. Eğer bir ekip atanmışsa, ekip müsait duruma
+              dönecek.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-slate-300 hover:text-white">
+              Vazgeç
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+              onClick={() => {
+                deleteVaka(vaka.id);
+                setDeleteOpen(false);
+                toast({
+                  title: "Vaka silindi",
+                  description: `${vaka.id} kaydı sistemden kaldırıldı.`,
+                });
+              }}
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              Evet, Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

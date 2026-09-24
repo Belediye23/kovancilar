@@ -16,6 +16,7 @@ import {
   FileBarChart,
   TrendingUp,
   Building2,
+  Settings2,
 } from "lucide-react";
 import { DashboardHeader, StatCard } from "@/components/app-shell";
 import { MiniHarita } from "@/components/shared/mini-harita";
@@ -25,12 +26,28 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { ARAÇLAR, MAHALLELER, formatTarih } from "@/lib/mock-data";
 import { useOperasyonStore } from "@/lib/store";
+import { KayitYonetimiModulu } from "@/components/dashboards/kayit-yonetimi";
 import type { SessionUser, Vaka, Ekip } from "@/lib/types";
 
-type Module = "genel" | "harita" | "ekipler" | "araclar" | "vakalar" | "raporlar";
+type Module = "genel" | "harita" | "ekipler" | "araclar" | "vakalar" | "raporlar" | "yonetim";
 
-export function OperasyonDashboard({ user }: { user: SessionUser }) {
-  const [module, setModule] = useState<Module>("genel");
+export function OperasyonDashboard({
+  user,
+  activeModule: externalModule,
+  onModuleChange,
+}: {
+  user: SessionUser;
+  activeModule?: string;
+  onModuleChange?: (id: string) => void;
+}) {
+  // Sidebar ile senkron module state'i
+  // (Next.js kuralı: `module` değişken adı yasak, `aktifModul` kullandık)
+  const [internalModule, setInternalModule] = useState<Module>("genel");
+  const aktifModul = (externalModule as Module) ?? internalModule;
+  const setAktifModul = (m: Module) => {
+    setInternalModule(m);
+    onModuleChange?.(m);
+  };
 
   // Zustand store'dan canlı veri al
   const tumVakalar = useOperasyonStore((s) => s.vakalar);
@@ -109,10 +126,10 @@ export function OperasyonDashboard({ user }: { user: SessionUser }) {
         {MODULES.map((m) => (
           <button
             key={m.id}
-            onClick={() => setModule(m.id as Module)}
+            onClick={() => setAktifModul(m.id as Module)}
             className={cn(
               "px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium border-b-2 -mb-px transition-colors",
-              module === m.id
+              aktifModul === m.id
                 ? "border-blue-500 text-white"
                 : "border-transparent text-slate-400 hover:text-slate-100"
             )}
@@ -124,7 +141,7 @@ export function OperasyonDashboard({ user }: { user: SessionUser }) {
       </div>
 
       {/* Modül içeriği */}
-      {module === "genel" && (
+      {aktifModul === "genel" && (
         <GenelBakis
           istatistik={istatistik}
           haritaNoktalari={haritaNoktalari}
@@ -135,13 +152,14 @@ export function OperasyonDashboard({ user }: { user: SessionUser }) {
           gorevdeAraclar={gorevdeAraclar}
         />
       )}
-      {module === "harita" && (
+      {aktifModul === "harita" && (
         <HaritaModulu haritaNoktalari={haritaNoktalari} tumVakalar={tumVakalar} />
       )}
-      {module === "ekipler" && <EkiplerModulu />}
-      {module === "araclar" && <AraclarModulu />}
-      {module === "vakalar" && <VakalarModulu tumVakalar={tumVakalar} />}
-      {module === "raporlar" && <RaporlarModulu tumVakalar={tumVakalar} />}
+      {aktifModul === "ekipler" && <EkiplerModulu />}
+      {aktifModul === "araclar" && <AraclarModulu />}
+      {aktifModul === "vakalar" && <VakalarModulu tumVakalar={tumVakalar} />}
+      {aktifModul === "raporlar" && <RaporlarModulu tumVakalar={tumVakalar} />}
+      {aktifModul === "yonetim" && <KayitYonetimiModulu />}
     </div>
   );
 }
@@ -153,6 +171,7 @@ const MODULES = [
   { id: "araclar", label: "Araç Filosu", ikon: Truck },
   { id: "vakalar", label: "Tüm Vakalar", ikon: AlertTriangle },
   { id: "raporlar", label: "Raporlar", ikon: FileBarChart },
+  { id: "yonetim", label: "Kayıt Yönetimi", ikon: Settings2 },
 ] as const;
 
 // --- Genel Bakış ---
