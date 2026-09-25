@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { MapPin, Crosshair, Navigation } from "lucide-react";
-import { KOVANCILAR_KOORDINAT } from "@/lib/mock-data";
+import { KOVANCILAR_KOORDINAT, MAHALLE_KOORDINATLARI } from "@/lib/mock-data";
 import "leaflet/dist/leaflet.css";
 
 // Leaflet'i SSR'de yükleme — 'use client' + dynamic import
@@ -132,7 +132,48 @@ export function MiniHarita({
           </Popup>
         </CircleMarker>
 
-        {/* Vaka noktaları */}
+        {/* Mahalle marker'ları — her Kovancılar mahallesi için gerçek konumda işaretçi
+            Her marker, o mahalledeki vaka sayısını gösterir */}
+        {Object.entries(MAHALLE_KOORDINATLARI).map(([mahalleAd, koord]) => {
+          // Bu mahalledeki vakaları say
+          const mahalleVakaSayisi = noktalar.filter(
+            (n) => n.etiket?.includes(mahalleAd) || n.etiket === undefined
+          ).length;
+
+          return (
+            <CircleMarker
+              key={mahalleAd}
+              center={[koord.lat, koord.lng]}
+              radius={6}
+              pathOptions={{
+                color: "#1e40af",
+                fillColor: "#3b82f6",
+                fillOpacity: 0.15,
+                weight: 1.5,
+                dashArray: "3 3",
+              }}
+            >
+              <Popup>
+                <div className="text-xs">
+                  <p className="font-bold text-sm text-slate-800">
+                    🏘️ {mahalleAd} Mahallesi
+                  </p>
+                  <p className="text-slate-600 mt-1">
+                    Kovancılar / Elazığ
+                  </p>
+                  <p className="text-slate-600 mt-1">
+                    Bu mahallede vaka: {mahalleVakaSayisi}
+                  </p>
+                  <p className="font-mono text-[10px] mt-1 text-slate-500">
+                    {koord.lat.toFixed(4)}° K · {koord.lng.toFixed(4)}° D
+                  </p>
+                </div>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
+
+        {/* Vaka noktaları — her vaka kendi mahallesinin gerçek koordinatında */}
         {noktalar.map((n, i) => {
           const color = ONCELIK_RENK[n.oncelik ?? "orta"] ?? ONCELIK_RENK.orta;
           return (

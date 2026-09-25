@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MAHALLELER, KOVANCILAR_KOORDINAT } from "@/lib/mock-data";
+import { MAHALLELER, KOVANCILAR_KOORDINAT, MAHALLE_KOORDINATLARI } from "@/lib/mock-data";
 import { useOperasyonStore, generateVakaId } from "@/lib/store";
 import { getBirim } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
@@ -72,9 +72,18 @@ export function YeniVakaFormu({
     }
 
     // Kovancılar merkeze yakın küçük rastgele koordinat üret
+    // Seçilen mahallenin GERÇEK koordinatını kullan (MAHALLE_KOORDINATLARI'ndan)
+    // Eğer mahalle listede yoksa Kovancılar merkezine düş
+    const mahalleKoord =
+      MAHALLE_KOORDINATLARI[mahalle] ?? {
+        lat: KOVANCILAR_KOORDINAT.lat,
+        lng: KOVANCILAR_KOORDINAT.lng,
+      };
+
+    // Mahalle merkezi etrafında küçük sapma (~50-150m) — vakalar üst üste binmesin
     const koordinat = {
-      lat: KOVANCILAR_KOORDINAT.lat + (Math.random() - 0.5) * 0.02,
-      lng: KOVANCILAR_KOORDINAT.lng + (Math.random() - 0.5) * 0.03,
+      lat: mahalleKoord.lat + (Math.random() - 0.5) * 0.002,
+      lng: mahalleKoord.lng + (Math.random() - 0.5) * 0.003,
     };
 
     const yeni: Vaka = {

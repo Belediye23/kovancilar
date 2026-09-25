@@ -18,6 +18,22 @@ export const KOVANCILAR_KOORDINAT = {
   lng: 27.1428,
 };
 
+// Kovancılar / Elazığ — her mahallenin gerçek merkez koordinatları
+// (Google Maps / OpenStreetMap'ten yaklaşık merkezler)
+export const MAHALLE_KOORDINATLARI: Record<
+  string,
+  { lat: number; lng: number }
+> = {
+  Merkez: { lat: 38.4237, lng: 27.1428 },      // Kovancılar ilçe merkezi
+  Cumhuriyet: { lat: 38.4220, lng: 27.1400 },   // Cumhuriyet Mah.
+  Yenidoğan: { lat: 38.4260, lng: 27.1450 },   // Yenidoğan Mah.
+  Atatürk: { lat: 38.4180, lng: 27.1490 },     // Atatürk Mah.
+  İstasyon: { lat: 38.4200, lng: 27.1370 },    // İstasyon Mah.
+  Aşağıçanlı: { lat: 38.4150, lng: 27.1350 },  // Aşağıçanlı Mah.
+  Yukarıçanlı: { lat: 38.4320, lng: 27.1480 }, // Yukarıçanlı Mah.
+  Recepkaya: { lat: 38.4150, lng: 27.1550 },   // Recepkaya Mah.
+};
+
 export const MAHALLELER: Mahalle[] = [
   { id: "m1", ad: "Merkez", nufus: 8420, vakaSayisi: 12 },
   { id: "m2", ad: "Cumhuriyet", nufus: 6310, vakaSayisi: 8 },
@@ -54,7 +70,7 @@ export const VAKALAR: Vaka[] = [
     olusturmaZamani: ahora(1),
     atananEkip: "FEN-EKIP-1",
     atananPersonel: "Ahmet Demir",
-    koordinat: { lat: 38.4225, lng: 27.1408 },
+    koordinat: { lat: 38.4228, lng: 27.1398 },
     kategori: "Kaldırım",
   },
   {
@@ -70,7 +86,7 @@ export const VAKALAR: Vaka[] = [
     olusturmaZamani: ahora(2),
     atananEkip: "FEN-EKIP-2",
     atananPersonel: "Veli Şahin",
-    koordinat: { lat: 38.4182, lng: 27.1495 },
+    koordinat: { lat: 38.4178, lng: 27.1492 },
     kategori: "Yol",
   },
   {
@@ -84,7 +100,7 @@ export const VAKALAR: Vaka[] = [
     oncelik: "orta",
     durum: "yeni",
     olusturmaZamani: ahora(0),
-    koordinat: { lat: 38.4261, lng: 27.1442 },
+    koordinat: { lat: 38.4263, lng: 27.1448 },
     kategori: "Parke",
   },
   {
@@ -99,6 +115,7 @@ export const VAKALAR: Vaka[] = [
     durum: "cozuldu",
     olusturmaZamani: ahora(5),
     atananEkip: "FEN-EKIP-1",
+    koordinat: { lat: 38.4242, lng: 27.1432 },
     kategori: "Kaldırım",
   },
 
@@ -116,7 +133,7 @@ export const VAKALAR: Vaka[] = [
     olusturmaZamani: ahora(0),
     atananEkip: "ZAB-EKIP-1",
     atananPersonel: "Hasan Aslan",
-    koordinat: { lat: 38.4201, lng: 27.1378 },
+    koordinat: { lat: 38.4203, lng: 27.1375 },
     kategori: "İşgal",
   },
   {
@@ -130,6 +147,7 @@ export const VAKALAR: Vaka[] = [
     oncelik: "orta",
     durum: "yeni",
     olusturmaZamani: ahora(1),
+    koordinat: { lat: 38.4218, lng: 27.1402 },
     kategori: "Gürültü",
   },
   {
@@ -144,6 +162,7 @@ export const VAKALAR: Vaka[] = [
     durum: "cozuldu",
     olusturmaZamani: ahora(3),
     atananEkip: "ZAB-EKIP-2",
+    koordinat: { lat: 38.4183, lng: 27.1488 },
     kategori: "Ruhsat",
   },
   {
@@ -156,6 +175,7 @@ export const VAKALAR: Vaka[] = [
     adres: "Boş arsa, 23. Sokak",
     oncelik: "orta",
     durum: "devam-ediyor",
+    koordinat: { lat: 38.4152, lng: 27.1352 },
     olusturmaZamani: ahora(2),
     atananEkip: "ZAB-EKIP-1",
     kategori: "Çevre",
@@ -175,7 +195,7 @@ export const VAKALAR: Vaka[] = [
     olusturmaZamani: ahora(0),
     atananEkip: "SU-EKIP-1",
     atananPersonel: "Ayşe Koç",
-    koordinat: { lat: 38.4195, lng: 27.1389 },
+    koordinat: { lat: 38.4197, lng: 27.1392 },
     kategori: "Su Kırılma",
   },
   {
@@ -190,6 +210,7 @@ export const VAKALAR: Vaka[] = [
     durum: "atandi",
     olusturmaZamani: ahora(1),
     atananEkip: "SU-EKIP-2",
+    koordinat: { lat: 38.4258, lng: 27.1452 },
     kategori: "Kanalizasyon",
   },
   {
@@ -203,6 +224,7 @@ export const VAKALAR: Vaka[] = [
     oncelik: "orta",
     durum: "yeni",
     olusturmaZamani: ahora(0),
+    koordinat: { lat: 38.4215, lng: 27.1395 },
     kategori: "Su Sızıntı",
   },
   {
@@ -217,6 +239,7 @@ export const VAKALAR: Vaka[] = [
     durum: "cozuldu",
     olusturmaZamani: ahora(4),
     atananEkip: "SU-EKIP-2",
+    koordinat: { lat: 38.4155, lng: 27.1548 },
     kategori: "Su Koku",
   },
 
@@ -232,6 +255,7 @@ export const VAKALAR: Vaka[] = [
     oncelik: "yuksek",
     durum: "devam-ediyor",
     olusturmaZamani: ahora(2),
+    koordinat: { lat: 38.4240, lng: 27.1430 },
     kategori: "Yazışma",
   },
   {
@@ -245,6 +269,7 @@ export const VAKALAR: Vaka[] = [
     oncelik: "dusuk",
     durum: "yeni",
     olusturmaZamani: ahora(0),
+    koordinat: { lat: 38.4235, lng: 27.1425 },
     kategori: "Özlük",
   },
   {
@@ -258,6 +283,7 @@ export const VAKALAR: Vaka[] = [
     oncelik: "orta",
     durum: "atandi",
     olusturmaZamani: ahora(3),
+    koordinat: { lat: 38.4239, lng: 27.1431 },
     kategori: "Arşiv",
   },
 ];
@@ -278,6 +304,7 @@ export const OPERASYON_OZEL_VAKALAR: Vaka[] = [
     olusturmaZamani: ahora(0),
     atananEkip: "OP-KOMUTA",
     atananPersonel: "Mehmet Yılmaz",
+    koordinat: { lat: 38.4241, lng: 27.1429 },
     kategori: "Koordinasyon",
   },
   {
@@ -291,6 +318,7 @@ export const OPERASYON_OZEL_VAKALAR: Vaka[] = [
     oncelik: "yuksek",
     durum: "yeni",
     olusturmaZamani: ahora(0),
+    koordinat: { lat: 38.4318, lng: 27.1482 },
     kategori: "Kırsal Ulaşım",
   },
 ];
