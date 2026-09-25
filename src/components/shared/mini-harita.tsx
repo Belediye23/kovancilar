@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { MapPin, Crosshair, Navigation } from "lucide-react";
 import { KOVANCILAR_KOORDINAT } from "@/lib/mock-data";
+import "leaflet/dist/leaflet.css";
 
 // Leaflet'i SSR'de yükleme — 'use client' + dynamic import
 const MapContainer = dynamic(
@@ -22,9 +22,10 @@ const Popup = dynamic(
   () => import("react-leaflet").then((m) => m.Popup),
   { ssr: false }
 );
-
-// Leaflet CSS
-import "leaflet/dist/leaflet.css";
+const Rectangle = dynamic(
+  () => import("react-leaflet").then((m) => m.Rectangle),
+  { ssr: false }
+);
 
 interface MiniHaritaProps {
   noktalar: {
@@ -45,6 +46,14 @@ const ONCELIK_RENK: Record<string, string> = {
   dusuk: "#64748b",
 };
 
+// Kovancılar ilçe yaklaşık sınırları (38.410-38.440 K, 27.125-27.160 D)
+// Bu sınırlar haritanın "Kovancılar ilçesine ait olduğunu" görsel olarak vurgular
+// ve kullanıcının haritayı bu alanın dışına kaydırmasını engeller
+const KOVANCILAR_BOUNDS: [[number, number], [number, number]] = [
+  [38.410, 27.125], // Güney-batı köşesi
+  [38.440, 27.160], // Kuzey-doğu köşesi
+];
+
 export function MiniHarita({
   noktalar,
   height = 280,
@@ -53,28 +62,6 @@ export function MiniHarita({
   const h = typeof height === "number" ? height : 280;
   const merkezM = KOVANCILAR_KOORDINAT;
 
-  // Kovancılar merkezli, tüm noktaları kapsayan bounds hesapla
-  const bounds = useMemo(() => {
-    if (noktalar.length === 0) {
-      // Varsayılan: Kovancılar merkezde, ufak bir alan (~1km)
-      return [
-        [merkezM.lat - 0.008, merkezM.lng - 0.012],
-        [merkezM.lat + 0.008, merkezM.lng + 0.012],
-      ] as [[number, number], [number, number]];
-    }
-    const lats = noktalar.map((n) => n.lat);
-    const lngs = noktalar.map((n) => n.lng);
-    // Kovancılar merkezini de dahil et — her zaman görünsün
-    const minLat = Math.min(...lats, merkezM.lat - 0.005);
-    const maxLat = Math.max(...lats, merkezM.lat + 0.005);
-    const minLng = Math.min(...lngs, merkezM.lng - 0.008);
-    const maxLng = Math.max(...lngs, merkezM.lng + 0.008);
-    return [
-      [minLat, minLng],
-      [maxLat, maxLng],
-    ] as [[number, number], [number, number]];
-  }, [noktalar, merkezM.lat, merkezM.lng]);
-
   return (
     <div
       className="relative rounded-xl border border-slate-700/60 overflow-hidden bg-slate-900/40"
@@ -82,32 +69,69 @@ export function MiniHarita({
     >
       <MapContainer
         center={[merkezM.lat, merkezM.lng]}
-        zoom={14}
+        zoom={15}
+        minZoom={13}
+        maxZoom={18}
         scrollWheelZoom={true}
+        zoomControl={true}
         style={{ width: "100%", height: "100%", background: "#0F1623" }}
-        bounds={bounds}
-        boundsOptions={{ padding: [30, 30] }}
+        maxBounds={KOVANCILAR_BOUNDS}
+        maxBoundsViscosity={0.9}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {/* Belediye binası merkez nokta */}
-        <CircleMarker
-          center={[merkezM.lat, merkezM.lng]}
-          radius={10}
-          pathOptions={{ color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: 0.4, weight: 3 }}
+
+        {/* Kovancılar ilçe sınırı — görsel vurgu (rectangle + popup) */}
+        <Rectangle
+          bounds={KOVANCILAR_BOUNDS}
+          pathOptions={{
+            color: "#3b82f6",
+            weight: 2,
+            opacity: 0.6,
+            fillColor: "#3b82f6",
+            fillOpacity: 0.05,
+            dashArray: "5, 10",
+          }}
         >
           <Popup>
             <div className="text-xs">
-              <p className="font-bold">KOVANCILAR BELEDİYESİ</p>
+              <p className="font-bold text-base">📍 KOVANCILAR İLÇESİ</p>
+              <p className="text-slate-600">Elazığ İli · Kovancılar İlçesi</p>
+              <p className="text-slate-600 mt-1">
+                Nüfus: ~35.000 · Yüzölçümü: ~540 km²
+              </p>
+              <p className="font-mono text-[10px] mt-1 text-slate-500">
+                Sınırlar: 38.410°-38.440° K · 27.125°-27.160° D
+              </p>
+            </div>
+          </Popup>
+        </Rectangle>
+
+        {/* Belediye binası merkez nokta — Kovancılar ilçe merkezi */}
+        <CircleMarker
+          center={[merkezM.lat, merkezM.lng]}
+          radius={11}
+          pathOptions={{
+            color: "#3b82f6",
+            fillColor: "#3b82f6",
+            fillOpacity: 0.5,
+            weight: 3,
+          }}
+        >
+          <Popup>
+            <div className="text-xs">
+              <p className="font-bold text-base">🏛️ KOVANCILAR BELEDİYESİ</p>
               <p className="text-slate-600">Saha Operasyon Merkezi</p>
-              <p className="font-mono text-[10px] mt-1">
-                {merkezM.lat}°K · {merkezM.lng}°D
+              <p className="text-slate-600 mt-1">Kovancılar / Elazığ</p>
+              <p className="font-mono text-[10px] mt-1 text-slate-500">
+                {merkezM.lat}° K · {merkezM.lng}° D
               </p>
             </div>
           </Popup>
         </CircleMarker>
+
         {/* Vaka noktaları */}
         {noktalar.map((n, i) => {
           const color = ONCELIK_RENK[n.oncelik ?? "orta"] ?? ONCELIK_RENK.orta;
@@ -132,7 +156,7 @@ export function MiniHarita({
                     {n.oncelik?.toUpperCase() ?? "ORTA"} öncelik
                   </p>
                   <p className="text-slate-600 font-mono text-[10px] mt-1">
-                    {n.lat.toFixed(4)}°K · {n.lng.toFixed(4)}°D
+                    {n.lat.toFixed(4)}° K · {n.lng.toFixed(4)}° D
                   </p>
                 </div>
               </Popup>
@@ -142,15 +166,15 @@ export function MiniHarita({
       </MapContainer>
 
       {/* Köşe UI overlay */}
-      <div className="absolute top-2 left-2 z-[1000] flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-900/80 border border-slate-700/60 backdrop-blur-sm pointer-events-none">
+      <div className="absolute top-2 left-2 z-[1000] flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-900/80 border border-blue-500/40 backdrop-blur-sm pointer-events-none">
         <MapPin className="w-3 h-3 text-blue-400" />
-        <span className="text-[10px] font-mono text-slate-300">
+        <span className="text-[10px] font-mono text-slate-100 font-bold">
           KOVANCILAR / ELAZIĞ
         </span>
       </div>
 
       <div className="absolute top-2 right-2 z-[1000] flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-900/80 border border-slate-700/60 backdrop-blur-sm pointer-events-none">
-        <Crosshair className="w-3 h-3 text-slate-400" />
+        <Crosshair className="w-3 h-3 text-blue-400" />
         <span className="text-[10px] font-mono text-slate-300">
           {merkezM.lat}°K · {merkezM.lng}°D
         </span>
@@ -194,7 +218,9 @@ function Yukleniyor({ height }: { height: number }) {
     >
       <div className="text-center">
         <div className="w-6 h-6 mx-auto mb-2 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-        <p className="text-[10px] font-mono text-slate-500">Harita yükleniyor...</p>
+        <p className="text-[10px] font-mono text-slate-500">
+          Kovancılar haritası yükleniyor...
+        </p>
       </div>
     </div>
   );
