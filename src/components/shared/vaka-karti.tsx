@@ -73,6 +73,7 @@ export function VakaKarti({ vaka }: { vaka: Vaka }) {
     [ekipler, userBirim]
   );
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [detayOpen, setDetayOpen] = useState(false);
 
   function handleDurumDegis(yeniDurum: VakaDurum) {
     changeVakaDurum(vaka.id, yeniDurum);
@@ -235,12 +236,7 @@ export function VakaKarti({ vaka }: { vaka: Vaka }) {
                 size="sm"
                 variant="ghost"
                 className="h-8 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-                onClick={() =>
-                  toast({
-                    title: "Detay görünümü",
-                    description: `${vaka.id} detay sayfası yakında.`,
-                  })
-                }
+                onClick={() => setDetayOpen(true)}
               >
                 <FileText className="w-3 h-3 mr-1.5" />
                 Detay
@@ -313,6 +309,13 @@ export function VakaKarti({ vaka }: { vaka: Vaka }) {
             description: `${vaka.id} çözüldü olarak işaretlendi.`,
           });
         }}
+      />
+
+      {/* Vaka Detay Modalı — tüm bilgiler + hızlı aksiyonlar */}
+      <VakaDetayModal
+        vaka={vaka}
+        open={detayOpen}
+        onOpenChange={setDetayOpen}
       />
 
       {/* Silme onayı */}
@@ -594,5 +597,226 @@ function KapatmaModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// --- Vaka Detay Modalı — Tüm bilgiler + hızlı aksiyonlar ---
+
+function VakaDetayModal({
+  vaka,
+  open,
+  onOpenChange,
+}: {
+  vaka: Vaka;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const { changeVakaDurum, closeVaka } = useOperasyonStore();
+  const [closeNote, setCloseNote] = useState("");
+
+  function handleDurum(yeniDurum: VakaDurum) {
+    changeVakaDurum(vaka.id, yeniDurum);
+    toast({
+      title: "Durum güncellendi",
+      description: `${vaka.id} → ${yeniDurum.toUpperCase()}`,
+    });
+  }
+
+  function handleKapat() {
+    if (closeNote.trim().length < 10) {
+      toast({
+        title: "Eksik bilgi",
+        description: "Çözüm notu en az 10 karakter olmalı.",
+        variant: "destructive",
+      });
+      return;
+    }
+    closeVaka(vaka.id, closeNote.trim());
+    setCloseNote("");
+    onOpenChange(false);
+    toast({
+      title: "Vaka kapatıldı ✓",
+      description: `${vaka.id} çözüldü olarak işaretlendi.`,
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-[#151E2E] border-slate-700 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-white flex items-center gap-2 text-lg">
+            <FileText className="w-4 h-4 text-blue-400" />
+            {vaka.baslik}
+          </DialogTitle>
+          <DialogDescription className="text-slate-400 flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-[11px]">{vaka.id}</span>
+            <span>·</span>
+            <OncelikRozet oncelik={vaka.oncelik} />
+            <DurumRozet durum={vaka.durum} />
+            <span>·</span>
+            <span>{vaka.kategori}</span>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Açıklama */}
+          <div>
+            <p className="text-[10px] font-mono uppercase tracking-wider text-slate-500 mb-1">
+              Açıklama
+            </p>
+            <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+              {vaka.aciklama}
+            </p>
+          </div>
+
+          {/* Bilgi grid'i */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <DetayBilgi ikon={MapPin} label="Mahalle" value={vaka.mahalle} />
+            <DetayBilgi ikon={MapPin} label="Adres" value={vaka.adres} />
+            <DetayBilgi ikon={Clock} label="Tarih" value={formatTarih(vaka.olusturmaZamani)} />
+            {vaka.atananEkip && (
+              <DetayBilgi ikon={Truck} label="Atanan Ekip" value={vaka.atananEkip} />
+            )}
+            {vaka.atananPersonel && (
+              <DetayBilgi ikon={User} label="Sorumlu" value={vaka.atananPersonel} />
+            )}
+            {vaka.koordinat && (
+              <DetayBilgi
+                ikon={MapPin}
+                label="Koordinat"
+                value={`${vaka.koordinat.lat.toFixed(4)}°K, ${vaka.koordinat.lng.toFixed(4)}°D`}
+              />
+            )}
+          </div>
+
+          {/* Durum değiştirme aksiyonları */}
+          {vaka.durum !== "cozuldu" && vaka.durum !== "iptal" && (
+            <div className="rounded-lg border border-slate-700/60 p-3">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-slate-500 mb-2">
+                DURUM GÜNCELLE
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {vaka.durum !== "atandi" && vaka.durum !== "devam-ediyor" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+                    onClick={() => handleDurum("atandi")}
+                  >
+                    <UserPlus className="w-3 h-3 mr-1.5" />
+                    Atandı
+                  </Button>
+                )}
+                {vaka.durum !== "devam-ediyor" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10"
+                    onClick={() => handleDurum("devam-ediyor")}
+                  >
+                    <PlayCircle className="w-3 h-3 mr-1.5" />
+                    Devam ediyor
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs border-rose-500/30 text-rose-300 hover:bg-rose-500/10"
+                  onClick={() => {
+                    changeVakaDurum(vaka.id, "iptal");
+                    toast({
+                      title: "Vaka iptal edildi",
+                      description: `${vaka.id} iptal olarak işaretlendi.`,
+                    });
+                    onOpenChange(false);
+                  }}
+                >
+                  <Ban className="w-3 h-3 mr-1.5" />
+                  İptal Et
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Çözüm notu ile kapat */}
+          {vaka.durum !== "cozuldu" && vaka.durum !== "iptal" && (
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/[0.04] p-3">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-emerald-300 mb-2">
+                ÇÖZÜLDÜ OLARAK KAPAT
+              </p>
+              <Textarea
+                value={closeNote}
+                onChange={(e) => setCloseNote(e.target.value)}
+                placeholder="Yapılan müdahale, kullanılan malzeme, sonuç..."
+                className="bg-slate-900/40 border-slate-700 text-white placeholder:text-slate-600 min-h-[80px] focus:border-emerald-500"
+              />
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-[10px] font-mono text-slate-500">
+                  {closeNote.trim().length} karakter (min 10)
+                </span>
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 h-8 text-xs"
+                  disabled={closeNote.trim().length < 10}
+                  onClick={handleKapat}
+                >
+                  <CheckCircle2 className="w-3 h-3 mr-1.5" />
+                  Çözüldü Olarak Kapat
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* PDF üret */}
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-700/60">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
+              onClick={async () => {
+                try {
+                  await generateVakaPDF(vaka);
+                  toast({
+                    title: "Vaka PDF'i oluşturuldu ✓",
+                    description: `${vaka.id} — vaka detay belgesi indirildi.`,
+                  });
+                } catch (e) {
+                  toast({
+                    title: "PDF üretilemedi",
+                    description: String(e).slice(0, 100),
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              <Printer className="w-3 h-3 mr-1.5" />
+              PDF Çıktı Al
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DetayBilgi({
+  ikon: Icon,
+  label,
+  value,
+}: {
+  ikon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-md bg-slate-900/40 border border-slate-800 p-2.5">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <Icon className="w-3 h-3 text-slate-500" />
+        <span className="text-[9px] font-mono uppercase tracking-wider text-slate-600">
+          {label}
+        </span>
+      </div>
+      <p className="text-xs text-slate-200">{value}</p>
+    </div>
   );
 }

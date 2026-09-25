@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { getBirim } from "@/lib/auth";
+import { getBirim, PERSONEL } from "@/lib/auth";
 import { formatTarih } from "@/lib/mock-data";
 import { useOperasyonStore } from "@/lib/store";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -76,12 +76,14 @@ export function AppShell({
 }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const birim = useMemo(() => getBirim(user.birimId), [user.birimId]);
   const BirimIcon = BIRIM_IKONLAR[user.birimId];
 
   // Zustand store'dan canlı bildirimler (mock-data yerine)
   const bildirimler = useOperasyonStore((s) => s.bildirimler);
+  const markSingleOkundu = useOperasyonStore((s) => s.markBildirimOkundu);
   const okunmamisBildirim = bildirimler.filter((b) => !b.okundu).length;
 
   // Socket.io canlı bağlantı — broadcast fonksiyonunu store'a bağla
@@ -165,16 +167,23 @@ export function AppShell({
           </div>
         </div>
 
-        {/* Arama */}
+        {/* Arama — açılır dropdown ile sonuç gösterir */}
         <div className="hidden md:flex flex-1 max-w-md mx-auto relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
           <Input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onFocus={() => setSearchOpen(true)}
             placeholder="Vaka, sicil, mahalle ara..."
             className="pl-9 h-9 bg-slate-800/40 border-slate-700/60 text-slate-200 placeholder:text-slate-600 focus:border-blue-500/60 focus-visible:ring-blue-500/20 rounded-lg"
           />
+          {search.trim().length > 0 && searchOpen && (
+            <AramaSonuclari
+              query={search}
+              onClose={() => setSearchOpen(false)}
+            />
+          )}
         </div>
 
         {/* Sağ aksiyonlar */}
@@ -233,6 +242,9 @@ export function AppShell({
                 {bildirimler.map((b) => (
                   <div
                     key={b.id}
+                    onClick={() => {
+                      if (!b.okundu) markSingleOkundu(b.id);
+                    }}
                     className={cn(
                       "px-4 py-3 border-b border-slate-800/60 hover:bg-slate-800/40 cursor-pointer transition-colors",
                       !b.okundu && "bg-blue-500/[0.04]"
@@ -608,5 +620,166 @@ export function DurumRozet({ durum }: { durum: string }) {
     >
       {item.label}
     </span>
+  );
+}
+
+// --- Arama Sonuçları Dropdown ---
+
+function AramaSonuclari({
+  query,
+  onClose,
+}: {
+  query: string;
+  onClose: () => void;
+}) {
+  const vakalar = useOperasyonStore((s) => s.vakalar);
+  const ekipler = useOperasyonStore((s) => s.ekipler);
+  const mahalleler = useOperasyonStore((s) => s.mahalleler);
+  const personel = PERSONEL;
+
+  const q = query.trim().toLowerCase();
+
+  // Vaka, ekip, mahalle ve personel araması
+  const vakaSonuc = vakalar
+    .filter(
+      (v) =>
+        v.baslik.toLowerCase().includes(q) ||
+        v.id.toLowerCase().includes(q) ||
+        v.mahalle.toLowerCase().includes(q) ||
+        v.adres.toLowerCase().includes(q) ||
+        v.kategori.toLowerCase().includes(q)
+    )
+    .slice(0, 5);
+
+  const ekipSonuc = ekipler
+    .filter(
+      (e) =>
+        e.ad.toLowerCase().includes(q) ||
+        e.id.toLowerCase().includes(q) ||
+        e.lider.toLowerCase().includes(q)
+    )
+    .slice(0, 3);
+
+  const mahalleSonuc = mahalleler
+    .filter((m) => m.ad.toLowerCase().includes(q))
+    .slice(0, 3);
+
+  const personelSonuc = personel
+    .filter(
+      (p) =>
+        p.adSoyad.toLowerCase().includes(q) ||
+        p.sicil.toLowerCase().includes(q) ||
+        p.rol.toLowerCase().includes(q)
+    )
+    .slice(0, 3);
+
+  const totalSonuc =
+    vakaSonuc.length + ekipSonuc.length + mahalleSonuc.length + personelSonuc.length;
+
+  return (
+    <>
+      {/* Tıklayınca kapat overlay */}
+      <div className="fixed inset-0 z-[60]" onClick={onClose} />
+
+      {/* Sonuç dropdown */}
+      <div className="absolute top-10 left-0 right-0 z-[61] max-h-96 overflow-y-auto scroll-area-thin rounded-lg border border-slate-700 bg-[#151E2E] shadow-2xl">
+        {totalSonuc === 0 ? (
+          <div className="px-4 py-6 text-center text-sm text-slate-500">
+            <Search className="w-5 h-5 mx-auto mb-2 opacity-50" />
+            "{query}" için sonuç bulunamadı.
+            <p className="text-[11px] mt-1 text-slate-600">
+              Vaka, ekip, mahalle veya sicil ile arayın.
+            </p>
+          </div>
+        ) : (
+          <div className="py-1">
+            {vakaSonuc.length > 0 && (
+              <div>
+                <p className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-500 bg-slate-900/40">
+                  Vakalar ({vakaSonuc.length})
+                </p>
+                {vakaSonuc.map((v) => (
+                  <button
+                    key={v.id}
+                    className="w-full px-3 py-2 text-left hover:bg-slate-800/60 flex items-start gap-2 border-b border-slate-800/40"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-mono text-slate-500">{v.id}</p>
+                      <p className="text-sm text-slate-100 truncate">{v.baslik}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                        {v.mahalle} · {v.kategori}
+                      </p>
+                    </div>
+                    <DurumRozet durum={v.durum} />
+                  </button>
+                ))}
+              </div>
+            )}
+            {ekipSonuc.length > 0 && (
+              <div>
+                <p className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-500 bg-slate-900/40">
+                  Ekipler ({ekipSonuc.length})
+                </p>
+                {ekipSonuc.map((e) => (
+                  <button
+                    key={e.id}
+                    className="w-full px-3 py-2 text-left hover:bg-slate-800/60 flex items-start gap-2 border-b border-slate-800/40"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-mono text-slate-500">{e.id}</p>
+                      <p className="text-sm text-slate-100 truncate">{e.ad}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                        Lider: {e.lider} · {e.uyeSayisi} üye
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {mahalleSonuc.length > 0 && (
+              <div>
+                <p className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-500 bg-slate-900/40">
+                  Mahalleler ({mahalleSonuc.length})
+                </p>
+                {mahalleSonuc.map((m) => (
+                  <button
+                    key={m.id}
+                    className="w-full px-3 py-2 text-left hover:bg-slate-800/60 flex items-start gap-2 border-b border-slate-800/40"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-100">{m.ad}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        Nüfus {m.nufus.toLocaleString("tr-TR")} · {m.vakaSayisi} vaka
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {personelSonuc.length > 0 && (
+              <div>
+                <p className="px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-500 bg-slate-900/40">
+                  Personel ({personelSonuc.length})
+                </p>
+                {personelSonuc.map((p) => (
+                  <button
+                    key={p.sicil + p.birimId}
+                    className="w-full px-3 py-2 text-left hover:bg-slate-800/60 flex items-start gap-2 border-b border-slate-800/40"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-mono text-slate-500">Sicil: {p.sicil}</p>
+                      <p className="text-sm text-slate-100 truncate">{p.adSoyad}</p>
+                      <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                        {p.rol}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

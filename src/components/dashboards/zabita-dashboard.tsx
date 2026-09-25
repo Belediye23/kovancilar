@@ -21,6 +21,7 @@ import { DashboardHeader, StatCard } from "@/components/app-shell";
 import { MiniHarita } from "@/components/shared/mini-harita";
 import { VakaKarti } from "@/components/shared/vaka-karti";
 import { YeniVakaFormu } from "@/components/shared/yeni-vaka-formu";
+import { YeniDenetimFormu } from "@/components/shared/yeni-denetim-evrak-formu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ export function ZabitaDashboard({
     setInternalModule(m);
     onModuleChange?.(m);
   };
+  const [yeniDenetimOpen, setYeniDenetimOpen] = useState(false);
 
   // Zustand store'dan canlı veri
   const allVakalar = useOperasyonStore((s) => s.vakalar);
@@ -98,12 +100,7 @@ export function ZabitaDashboard({
               variant="ghost"
               size="sm"
               className="text-slate-300 hover:text-white hover:bg-slate-800/60 h-9"
-              onClick={() =>
-                toast({
-                  title: "Yeni denetim kaydı",
-                  description: "Saha denetim kaydı formu açılıyor...",
-                })
-              }
+              onClick={() => setYeniDenetimOpen(true)}
             >
               <Plus className="w-3.5 h-3.5 mr-1.5" />
               Yeni Denetim
@@ -150,7 +147,9 @@ export function ZabitaDashboard({
           vakalar={vakalar}
         />
       )}
-      {aktifModul === "denetimler" && <DenetimlerModulu />}
+      {aktifModul === "denetimler" && (
+        <DenetimlerModulu onYeniDenetim={() => setYeniDenetimOpen(true)} />
+      )}
       {aktifModul === "cezalar" && <CezalarModulu />}
       {aktifModul === "sikayetler" && <SikayetlerModulu vakalar={vakalar} />}
       {aktifModul === "ekipler" && <ZabitaEkiplerModulu />}
@@ -162,6 +161,13 @@ export function ZabitaDashboard({
           defaultKategori="İşgal"
         />
       )}
+
+      {/* Yeni Denetim Modalı — üst toolbar + Denetimler modülünden tetiklenir */}
+      <YeniDenetimFormu
+        open={yeniDenetimOpen}
+        onOpenChange={setYeniDenetimOpen}
+        ekipId={EKIPLER[0]?.id ?? "ZAB-EKIP-1"}
+      />
     </div>
   );
 }
@@ -228,7 +234,11 @@ function ZabitaGenelBakis({
   );
 }
 
-function DenetimlerModulu() {
+function DenetimlerModulu({
+  onYeniDenetim,
+}: {
+  onYeniDenetim?: () => void;
+}) {
   const DENETIM_KAYITLARI = useOperasyonStore((s) => s.denetimler);
   const [search, setSearch] = useState("");
   const filtreli = DENETIM_KAYITLARI.filter(
@@ -269,7 +279,12 @@ function DenetimlerModulu() {
             className="pl-8 h-9 bg-slate-800/40 border-slate-700 text-slate-200 placeholder:text-slate-600 focus:border-blue-500/60 rounded-lg"
           />
         </div>
-        <Button size="sm" variant="ghost" className="text-slate-300 hover:text-white">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-slate-300 hover:text-white"
+          onClick={() => onYeniDenetim?.()}
+        >
           <Plus className="w-3.5 h-3.5 mr-1.5" />
           Yeni Denetim
         </Button>

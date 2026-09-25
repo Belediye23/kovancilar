@@ -16,16 +16,28 @@ import {
   Printer,
   TrendingUp,
   Calendar,
+  Trash2,
 } from "lucide-react";
 import { DashboardHeader, StatCard } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { formatTarih } from "@/lib/mock-data";
 import { useOperasyonStore } from "@/lib/store";
 import { PERSONEL, getBirim } from "@/lib/auth";
 import { generateAylıkFaaliyetRaporu } from "@/lib/pdf-rapor";
+import { YeniEvrakFormu } from "@/components/shared/yeni-denetim-evrak-formu";
 import type { SessionUser, Evrak, Vaka } from "@/lib/types";
 
 type Module = "genel" | "evrak" | "raporlar" | "arsiv" | "personel";
@@ -45,6 +57,7 @@ export function IdariIslerDashboard({
     setInternalModule(m);
     onModuleChange?.(m);
   };
+  const [yeniEvrakOpen, setYeniEvrakOpen] = useState(false);
 
   // Zustand store'dan canlı veri
   const EVRAKLAR = useOperasyonStore((s) => s.evraklar);
@@ -73,12 +86,7 @@ export function IdariIslerDashboard({
               variant="ghost"
               size="sm"
               className="text-slate-300 hover:text-white hover:bg-slate-800/60 h-9"
-              onClick={() =>
-                toast({
-                  title: "Yeni evrak oluşturma",
-                  description: "Evrak kayıt formu açılıyor...",
-                })
-              }
+              onClick={() => setYeniEvrakOpen(true)}
             >
               <Plus className="w-3.5 h-3.5 mr-1.5" />
               Yeni Evrak
@@ -148,7 +156,9 @@ export function IdariIslerDashboard({
       {aktifModul === "genel" && (
         <IdariGenelBakis istatistik={istatistik} evraklar={EVRAKLAR} />
       )}
-      {aktifModul === "evrak" && <EvrakModulu />}
+      {aktifModul === "evrak" && (
+        <EvrakModulu onYeniEvrak={() => setYeniEvrakOpen(true)} />
+      )}
       {aktifModul === "raporlar" && (
         <RaporlarModulu
           user={user}
@@ -158,6 +168,12 @@ export function IdariIslerDashboard({
       )}
       {aktifModul === "arsiv" && <ArsivModulu />}
       {aktifModul === "personel" && <PersonelModulu />}
+
+      {/* Yeni Evrak Modalı — üst toolbar + Evrak modülünden tetiklenir */}
+      <YeniEvrakFormu
+        open={yeniEvrakOpen}
+        onOpenChange={setYeniEvrakOpen}
+      />
     </div>
   );
 }
@@ -306,7 +322,11 @@ function IdariGenelBakis({
   );
 }
 
-function EvrakModulu() {
+function EvrakModulu({
+  onYeniEvrak,
+}: {
+  onYeniEvrak?: () => void;
+}) {
   const EVRAKLAR = useOperasyonStore((s) => s.evraklar);
   const [search, setSearch] = useState("");
   const filtreli = EVRAKLAR.filter(
@@ -328,7 +348,12 @@ function EvrakModulu() {
             className="pl-8 h-9 bg-slate-800/40 border-slate-700 text-slate-200 placeholder:text-slate-600 focus:border-blue-500/60 rounded-lg"
           />
         </div>
-        <Button size="sm" variant="ghost" className="text-slate-300 hover:text-white">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-slate-300 hover:text-white"
+          onClick={() => onYeniEvrak?.()}
+        >
           <Plus className="w-3.5 h-3.5 mr-1.5" />
           Yeni Evrak
         </Button>
@@ -344,6 +369,9 @@ function EvrakModulu() {
 }
 
 function EvrakKarti({ evrak }: { evrak: Evrak }) {
+  const deleteEvrak = useOperasyonStore((s) => s.deleteEvrak);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
   return (
     <div className="rounded-lg border border-slate-700/60 bg-slate-800/30 p-3 hover:border-slate-600 transition-colors">
       <div className="flex items-start justify-between mb-2">
@@ -372,6 +400,12 @@ function EvrakKarti({ evrak }: { evrak: Evrak }) {
           size="sm"
           variant="ghost"
           className="h-7 text-xs text-slate-300 hover:text-white hover:bg-slate-700/40"
+          onClick={() =>
+            toast({
+              title: evrak.konu,
+              description: `${evrak.evrakNo} · ${evrak.tip} · ${evrak.gonderen} → ${evrak.alici}`,
+            })
+          }
         >
           Detay
         </Button>
@@ -379,11 +413,67 @@ function EvrakKarti({ evrak }: { evrak: Evrak }) {
           size="sm"
           variant="ghost"
           className="h-7 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+          onClick={async () => {
+            try {
+              toast({ title: "Evrak PDF'i hazırlanıyor..." });
+              const { generateEvrakPDF } = await import("@/lib/pdf-rapor");
+              await generateEvrakPDF(evrak);
+              toast({
+                title: "Evrak PDF'i indirildi ✓",
+                description: evrak.konu,
+              });
+            } catch (e) {
+              toast({
+                title: "Yazdırma hatası",
+                description: String(e).slice(0, 100),
+                variant: "destructive",
+              });
+            }
+          }}
         >
           <Printer className="w-3 h-3 mr-1" />
           Yazdır
         </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+          onClick={() => setDeleteOpen(true)}
+        >
+          <Trash2 className="w-3 h-3 mr-1" />
+          Sil
+        </Button>
       </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent className="bg-[#151E2E] border-slate-700 text-white max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Evrakı Sil</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              {evrak.evrakNo} — <span className="text-slate-200">{evrak.konu}</span>
+              <br />
+              Bu evrak kaydı kalıcı olarak silinecek. İşlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-slate-300 hover:text-white">Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+              onClick={() => {
+                deleteEvrak(evrak.id);
+                setDeleteOpen(false);
+                toast({
+                  title: "Evrak silindi",
+                  description: `${evrak.evrakNo} kaydı sistemden kaldırıldı.`,
+                });
+              }}
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+              Evet, Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

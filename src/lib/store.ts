@@ -84,6 +84,13 @@ interface OperasyonState {
   updateEvrakDurum: (id: string, durum: Evrak["durum"]) => void;
   deleteEvrak: (id: string) => void;
 
+  // Mutasyonlar — Denetim
+  addDenetim: (denetim: DenetimKaydi) => void;
+  deleteDenetim: (id: string) => void;
+
+  // Mutasyonlar — Su Arıza
+  addSuAriza: (kayit: SuAruzaKaydi) => void;
+
   // Yardımcılar
   getVakalarByBirim: (birimId: BirimId) => Vaka[];
   getEkilerByBirim: (birimId: BirimId) => Ekip[];
@@ -372,6 +379,21 @@ export const useOperasyonStore = create<OperasyonState>()(
         set((s) => ({
           evraklar: s.evraklar.filter((e) => e.id !== id),
         })),
+
+      // --- Denetim mutasyonları ---
+
+      addDenetim: (denetim) =>
+        set((s) => ({ denetimler: [denetim, ...s.denetimler] })),
+
+      deleteDenetim: (id) =>
+        set((s) => ({
+          denetimler: s.denetimler.filter((d) => d.id !== id),
+        })),
+
+      // --- Su Arıza mutasyonları ---
+
+      addSuAriza: (kayit) =>
+        set((s) => ({ suAriza: [kayit, ...s.suAriza] })),
 
       // --- Yardımcılar ---
 

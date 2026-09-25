@@ -22,6 +22,13 @@ import { DashboardHeader, StatCard } from "@/components/app-shell";
 import { MiniHarita } from "@/components/shared/mini-harita";
 import { VakaKarti } from "@/components/shared/vaka-karti";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { ARAÇLAR, MAHALLELER, formatTarih } from "@/lib/mock-data";
@@ -316,6 +323,7 @@ function EkiplerModulu() {
 }
 
 function EkipKarti({ ekip }: { ekip: Ekip }) {
+  const updateEkipDurum = useOperasyonStore((s) => s.updateEkipDurum);
   const durumRenk: Record<string, string> = {
     gorevde: "text-emerald-400 bg-emerald-500/10 border-emerald-500/30",
     musait: "text-blue-400 bg-blue-500/10 border-blue-500/30",
@@ -336,14 +344,31 @@ function EkipKarti({ ekip }: { ekip: Ekip }) {
           <p className="text-xs font-mono text-slate-500">{ekip.id}</p>
           <p className="text-sm font-medium text-white mt-0.5">{ekip.ad}</p>
         </div>
-        <span
-          className={cn(
-            "text-[10px] font-mono px-1.5 py-0.5 rounded border",
-            durumRenk[ekip.durum]
-          )}
+        <Select
+          value={ekip.durum}
+          onValueChange={(v) => {
+            updateEkipDurum(ekip.id, v as Ekip["durum"]);
+            toast({
+              title: "Ekip durumu güncellendi",
+              description: `${ekip.id} → ${durumEtiket[v]}`,
+            });
+          }}
         >
-          {durumEtiket[ekip.durum]}
-        </span>
+          <SelectTrigger
+            className={cn(
+              "h-7 w-24 text-[10px] font-mono border rounded px-1.5 py-0.5 bg-transparent",
+              durumRenk[ekip.durum]
+            )}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-[#151E2E] border-slate-700">
+            <SelectItem value="musait" className="text-white focus:bg-slate-700">MÜSAİT</SelectItem>
+            <SelectItem value="gorevde" className="text-white focus:bg-slate-700">GÖREVDE</SelectItem>
+            <SelectItem value="mola" className="text-white focus:bg-slate-700">MOLADA</SelectItem>
+            <SelectItem value="izinde" className="text-white focus:bg-slate-700">İZİNDE</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-1 text-[11px] text-slate-400">
         <div className="flex items-center justify-between">
