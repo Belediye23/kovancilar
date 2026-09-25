@@ -26,7 +26,7 @@ import { formatTarih } from "@/lib/mock-data";
 import { useOperasyonStore } from "@/lib/store";
 import { PERSONEL, getBirim } from "@/lib/auth";
 import { generateAylıkFaaliyetRaporu } from "@/lib/pdf-rapor";
-import type { SessionUser, Evrak } from "@/lib/types";
+import type { SessionUser, Evrak, Vaka } from "@/lib/types";
 
 type Module = "genel" | "evrak" | "raporlar" | "arsiv" | "personel";
 
@@ -149,7 +149,13 @@ export function IdariIslerDashboard({
         <IdariGenelBakis istatistik={istatistik} evraklar={EVRAKLAR} />
       )}
       {aktifModul === "evrak" && <EvrakModulu />}
-      {aktifModul === "raporlar" && <RaporlarModulu />}
+      {aktifModul === "raporlar" && (
+        <RaporlarModulu
+          user={user}
+          tumVakalar={tumVakalar}
+          EVRAKLAR={EVRAKLAR}
+        />
+      )}
       {aktifModul === "arsiv" && <ArsivModulu />}
       {aktifModul === "personel" && <PersonelModulu />}
     </div>
@@ -410,7 +416,15 @@ function EvrakDurumRozet({ durum }: { durum: string }) {
   );
 }
 
-function RaporlarModulu() {
+function RaporlarModulu({
+  user,
+  tumVakalar,
+  EVRAKLAR,
+}: {
+  user: SessionUser;
+  tumVakalar: Vaka[];
+  EVRAKLAR: Evrak[];
+}) {
   const RAPORLAR = [
     { id: "R-2026-09", baslik: "Eylül 2026 Aylık Faaliyet Raporu", tarih: "24.09.2026", durum: "TASLAK", tip: "Aylık" },
     { id: "R-2026-08", baslik: "Ağustos 2026 Faaliyet Raporu", tarih: "01.09.2026", durum: "TAMAMLANDI", tip: "Aylık" },
@@ -468,9 +482,20 @@ function RaporlarModulu() {
                 className="h-7 text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
                 onClick={async () => {
                   try {
-                    toast({ title: "Rapor PDF'i hazırlanıyor...", description: "Türkçe font yükleniyor..." });
+                    toast({
+                      title: "Rapor PDF'i hazırlanıyor...",
+                      description: "Türkçe font yükleniyor, lütfen bekleyin.",
+                    });
+                    // Bugünün ay/yıl bilgisini Türkçe olarak hesapla
+                    const bugun = new Date();
+                    const ayYilStr = bugun.toLocaleDateString("tr-TR", {
+                      month: "long",
+                      year: "numeric",
+                    });
+                    const ayYil =
+                      ayYilStr.charAt(0).toUpperCase() + ayYilStr.slice(1);
                     await generateAylıkFaaliyetRaporu({
-                      ayYil: r.baslik.replace("Aylık Faaliyet Raporu", "").trim() || "Rapor",
+                      ayYil: `${r.baslik} (${ayYil})`,
                       uretenAdSoyad: user.adSoyad,
                       uretenSicil: user.sicil,
                       uretenBirimAdi: getBirim(user.birimId).ad,
@@ -485,9 +510,10 @@ function RaporlarModulu() {
                       description: r.baslik,
                     });
                   } catch (e) {
+                    console.error("Yazdırma hatası:", e);
                     toast({
                       title: "Yazdırma hatası",
-                      description: String(e),
+                      description: `Rapor üretilemedi. ${String(e).slice(0, 150)}`,
                       variant: "destructive",
                     });
                   }
