@@ -1,12 +1,13 @@
 import type { NextConfig } from "next";
 
+// Vercel deploy için sadeleştirilmiş config
+// (output: "standalone" Vercel'de gerekmez; Vercel kendi build sistemini kullanır)
 const nextConfig: NextConfig = {
-  output: "standalone",
-  /* config options here */
+  reactStrictMode: false,
+  // TypeScript build hatalarını görmezden gel (scaffold zamanından kalan)
   typescript: {
     ignoreBuildErrors: true,
   },
-  reactStrictMode: false,
 };
 
 export default nextConfig;

@@ -9,13 +9,17 @@ node_modules
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+bun.lock
 
 # testing
 /coverage
 
-# next.js
+# next.js build output
 /.next/
 /out/
+/build
+.next/standalone
+next-env.d.ts
 
 # production
 /build
@@ -30,25 +34,45 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files — asla GitHub'a yüklenmesin
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
 
-# vercel
+# vercel deployment artifacts
 .vercel
-
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
-local-*
+
+# Z.ai sandbox'a özel dosyalar — GitHub'a yüklenmez
+.zscripts/
+skills/
+examples/
+tests/
+tool-results/
+download/
+upload/
+mini-services-dist/
 .claude
 .z-ai-config
 *.log
 dev.log
 dev.out.log
+server.log
 test
 prompt
+local-*
 
-server.log
-# Skills directory
-/skills/
+# Caddy config (sadece sandbox için, Vercel'de kullanılmaz)
+Caddyfile
+
+# Prisma build artifacts
+prisma/migrations/dev.db*
+
+# Demo veritabanı
+db/
+*.sqlite
+*.db-journal

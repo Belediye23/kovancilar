@@ -6,12 +6,27 @@ import { useOperasyonStore } from "@/lib/store";
 import { toast } from "@/hooks/use-toast";
 import type { SessionUser, Bildirim } from "@/lib/types";
 
-// Socket.io canlı bildirim servisi — port 3004
-// Caddy gateway'i path "/" üzerinden bu porta forward eder.
-// Frontend XTransformPort=3004 ile bağlanır.
+// Socket.io canlı bildirim servisi
+//
+// Vercel/serverless'da Socket.io çalışmaz. Bu yüzden:
+// 1. NEXT_PUBLIC_SOCKET_URL tanımlıysa → ona bağlan (Render/Railway/Fly.io)
+// 2. Tanımlı değilse → XTransformPort=3004 ile yerel Caddy gateway dene
+// 3. Hiçbiri çalışmazsa → otomatik OFFLINE moduna düşer, uygulama lokal çalışır
 
-const SOCKET_PORT = 3004;
-const SOCKET_URL = `/?XTransformPort=${SOCKET_PORT}`;
+const SOCKET_URL_FROM_ENV = process.env.NEXT_PUBLIC_SOCKET_URL || "";
+
+// Yerel sandbox'ta Caddy XTransformPort forwarding'i kullanır
+// Vercel/production'da env'ten gelen URL kullanılır
+function buildSocketUrl(): string {
+  if (SOCKET_URL_FROM_ENV && SOCKET_URL_FROM_ENV.length > 0) {
+    return SOCKET_URL_FROM_ENV;
+  }
+  // Sandbox/local — Caddy gateway XTransformPort kullanır
+  const SOCKET_PORT = 3004;
+  return `/?XTransformPort=${SOCKET_PORT}`;
+}
+
+const SOCKET_URL = buildSocketUrl();
 
 interface BroadcastEvent {
   type:
@@ -65,13 +80,18 @@ export function useNotifications(user: SessionUser | null) {
     if (!sharedSocket) {
       try {
         sharedSocket = io(SOCKET_URL, {
-          transports: ["websocket"],
+          transports: ["websocket", "polling"],
           reconnection: true,
-          reconnectionAttempts: 10,
-          reconnectionDelay: 2000,
+          reconnectionAttempts: 5, // Vercel'de Socket.io yoksa hızlı vazgeç
+          reconnectionDelay: 3000,
+          timeout: 5000,
+          // Bağlantı başarısız olursa sessizce offline modda kal
+          autoConnect: true,
+          forceNew: false,
         });
       } catch (e) {
-        console.error("[ws] Socket oluşturma hatası:", e);
+        // Vercel/serverless'ta Socket.io yok — sessizce offline modda çalış
+        console.warn("[ws] Socket.io bağlantısı kurulamadı, offline modda çalışılıyor.");
         return;
       }
     }
