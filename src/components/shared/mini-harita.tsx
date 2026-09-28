@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { MapPin, Crosshair, Navigation } from "lucide-react";
-import { KOVANCILAR_KOORDINAT, MAHALLE_KOORDINATLARI } from "@/lib/mock-data";
+import { KOVANCILAR_KOORDINAT, MAHALLE_KOORDINATLARI, MAHALLELER } from "@/lib/mock-data";
 import "leaflet/dist/leaflet.css";
 
 // Leaflet'i SSR'de yükleme — 'use client' + dynamic import
@@ -69,9 +69,9 @@ export function MiniHarita({
     >
       <MapContainer
         center={[merkezM.lat, merkezM.lng]}
-        zoom={15}
+        zoom={16}
         minZoom={14}
-        maxZoom={18}
+        maxZoom={19}
         scrollWheelZoom={true}
         zoomControl={true}
         style={{ width: "100%", height: "100%", background: "#0F1623" }}
@@ -100,10 +100,13 @@ export function MiniHarita({
               <p className="font-bold text-base">📍 KOVANCILAR İLÇESİ</p>
               <p className="text-slate-600">Elazığ İli · Kovancılar İlçesi</p>
               <p className="text-slate-600 mt-1">
-                Nüfus: ~35.000 · Yüzölçümü: ~540 km²
+                Toplam Nüfus: {MAHALLELER.reduce((t, m) => t + m.nufus, 0).toLocaleString("tr-TR")} kişi
+              </p>
+              <p className="text-slate-600">
+                Mahalle Sayısı: {MAHALLELER.length}
               </p>
               <p className="font-mono text-[10px] mt-1 text-slate-500">
-                Sınırlar: 38.410°-38.440° K · 27.125°-27.160° D
+                Merkez: 38.72° K · 39.87° D
               </p>
             </div>
           </Popup>
@@ -135,22 +138,21 @@ export function MiniHarita({
         {/* Mahalle marker'ları — her Kovancılar mahallesi için gerçek konumda işaretçi
             Her marker, o mahalledeki vaka sayısını gösterir */}
         {Object.entries(MAHALLE_KOORDINATLARI).map(([mahalleAd, koord]) => {
-          // Bu mahalledeki vakaları say
-          const mahalleVakaSayisi = noktalar.filter(
-            (n) => n.etiket?.includes(mahalleAd) || n.etiket === undefined
-          ).length;
+          // Bu mahalledeki nüfusu bul
+          const mahalleBilgi = MAHALLELER.find((m) => m.ad === mahalleAd);
+          const mahalleNufus = mahalleBilgi?.nufus ?? 0;
+  const mahalleVakaSayisi = mahalleBilgi?.vakaSayisi ?? 0;
 
           return (
             <CircleMarker
               key={mahalleAd}
               center={[koord.lat, koord.lng]}
-              radius={6}
+              radius={7}
               pathOptions={{
                 color: "#1e40af",
                 fillColor: "#3b82f6",
-                fillOpacity: 0.15,
-                weight: 1.5,
-                dashArray: "3 3",
+                fillOpacity: 0.2,
+                weight: 2,
               }}
             >
               <Popup>
@@ -161,10 +163,18 @@ export function MiniHarita({
                   <p className="text-slate-600 mt-1">
                     Kovancılar / Elazığ
                   </p>
-                  <p className="text-slate-600 mt-1">
-                    Bu mahallede vaka: {mahalleVakaSayisi}
-                  </p>
-                  <p className="font-mono text-[10px] mt-1 text-slate-500">
+                  <div className="mt-2 space-y-1">
+                    <p className="text-slate-700">
+                      <span className="font-semibold">👥 Nüfus:</span> {mahalleNufus.toLocaleString("tr-TR")} kişi
+                    </p>
+                    <p className="text-slate-700">
+                      <span className="font-semibold">📋 Vaka:</span> {mahalleVakaSayisi} adet
+                    </p>
+                    <p className="text-slate-700">
+                      <span className="font-semibold">📊 Vaka/Nüfus:</span> %{((mahalleVakaSayisi / Math.max(mahalleNufus, 1)) * 100).toFixed(2)}
+                    </p>
+                  </div>
+                  <p className="font-mono text-[10px] mt-2 text-slate-500">
                     {koord.lat.toFixed(4)}° K · {koord.lng.toFixed(4)}° D
                   </p>
                 </div>
