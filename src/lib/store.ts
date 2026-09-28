@@ -424,7 +424,8 @@ export const useOperasyonStore = create<OperasyonState>()(
         mahalleler: s.mahalleler,
         araclar: s.araclar,
       }),
-      version: 4,
+      version: 5,
+      migrate: () => null, // Eski localStorage verisini tamamen sil
     }
   )
 );
