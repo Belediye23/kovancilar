@@ -1,0 +1,10 @@
+[notifications] Installing dependencies...
+bun install v1.3.14 (0d9b296a)
+
+Checked 22 installs across 23 packages (no changes) [18.00ms]
+[notifications] Running bun run dev...
+$ bun --hot index.ts
+[notifications] Socket.io servisi 3004 portunda çalışıyor
+[socket] Yeni bağlantı: Z2wTYevTzWf8ftokAAAA
+[socket] 0001 (operasyon) kayıt oldu — toplam 1 client
+[socket] 0001 (operasyon) ayrıldı
