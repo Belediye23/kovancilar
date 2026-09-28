@@ -47,15 +47,11 @@ const ONCELIK_RENK: Record<string, string> = {
 };
 
 // Kovancılar ilçe sınırları — harita BU ALANIN DIŞINA ÇIKAMAZ
-// Tüm mahalleler bu sınırlar içinde:
-//   - Güney: Aşağıçanlı (38.4150)
-//   - Kuzey: Yukarıçanlı (38.4320)
-//   - Batı: İstasyon (27.1370)
-//   - Doğu: Recepkaya (27.1550)
-// Sınırlara padding eklenir ki mahalleler kenarda kalmasın
+// Merkez: 38.72°K, 39.87°D
+// Tüm mahalleler bu sınırlar içinde
 const KOVANCILAR_BOUNDS: [[number, number], [number, number]] = [
-  [38.408, 27.120], // Güney-batı köşesi (Aşağıçanlı'dan 200m güney)
-  [38.438, 27.165], // Kuzey-doğu köşesi (Yukarıçanlı'dan 200m kuzey, Recepkaya'dan 200m doğu)
+  [38.700, 39.840], // Güney-batı köşesi
+  [38.740, 39.900], // Kuzey-doğu köşesi
 ];
 
 export function MiniHarita({
