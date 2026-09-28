@@ -424,7 +424,7 @@ export const useOperasyonStore = create<OperasyonState>()(
         mahalleler: s.mahalleler,
         araclar: s.araclar,
       }),
-      version: 3,
+      version: 4,
     }
   )
 );

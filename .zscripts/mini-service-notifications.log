@@ -24,3 +24,9 @@ $ bun --hot index.ts
 [socket] 0001 (operasyon) kayıt oldu — toplam 1 client
 [socket] Yeni bağlantı: U9O_LTpdYdZ7pkivAAAG
 [socket] 0001 (operasyon) kayıt oldu — toplam 2 client
+[socket] Yeni bağlantı: PNpmBFWVVtAiPzH1AAAH
+[socket] 0001 (operasyon) kayıt oldu — toplam 3 client
+[socket] 0001 (operasyon) ayrıldı
+[socket] Yeni bağlantı: S1gKFJqSG8q-D0KOAAAI
+[socket] 0001 (operasyon) kayıt oldu — toplam 3 client
+[socket] 0001 (operasyon) ayrıldı
