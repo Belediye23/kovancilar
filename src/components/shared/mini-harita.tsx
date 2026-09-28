@@ -46,12 +46,16 @@ const ONCELIK_RENK: Record<string, string> = {
   dusuk: "#64748b",
 };
 
-// Kovancılar ilçe yaklaşık sınırları (38.410-38.440 K, 27.125-27.160 D)
-// Bu sınırlar haritanın "Kovancılar ilçesine ait olduğunu" görsel olarak vurgular
-// ve kullanıcının haritayı bu alanın dışına kaydırmasını engeller
+// Kovancılar ilçe sınırları — harita BU ALANIN DIŞINA ÇIKAMAZ
+// Tüm mahalleler bu sınırlar içinde:
+//   - Güney: Aşağıçanlı (38.4150)
+//   - Kuzey: Yukarıçanlı (38.4320)
+//   - Batı: İstasyon (27.1370)
+//   - Doğu: Recepkaya (27.1550)
+// Sınırlara padding eklenir ki mahalleler kenarda kalmasın
 const KOVANCILAR_BOUNDS: [[number, number], [number, number]] = [
-  [38.410, 27.125], // Güney-batı köşesi
-  [38.440, 27.160], // Kuzey-doğu köşesi
+  [38.408, 27.120], // Güney-batı köşesi (Aşağıçanlı'dan 200m güney)
+  [38.438, 27.165], // Kuzey-doğu köşesi (Yukarıçanlı'dan 200m kuzey, Recepkaya'dan 200m doğu)
 ];
 
 export function MiniHarita({
@@ -70,13 +74,13 @@ export function MiniHarita({
       <MapContainer
         center={[merkezM.lat, merkezM.lng]}
         zoom={15}
-        minZoom={13}
+        minZoom={14}
         maxZoom={18}
         scrollWheelZoom={true}
         zoomControl={true}
         style={{ width: "100%", height: "100%", background: "#0F1623" }}
         maxBounds={KOVANCILAR_BOUNDS}
-        maxBoundsViscosity={0.9}
+        maxBoundsViscosity={1.0}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
