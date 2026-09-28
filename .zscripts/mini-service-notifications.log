@@ -33,3 +33,6 @@ $ bun --hot index.ts
 [socket] Yeni bağlantı: t30jdEHFE5u019vVAAAJ
 [socket] 0001 (operasyon) kayıt oldu — toplam 3 client
 [socket] 0001 (operasyon) ayrıldı
+[socket] Yeni bağlantı: BR1RYRjGr-NKOQ7xAAAK
+[socket] 0001 (operasyon) kayıt oldu — toplam 3 client
+[socket] 0001 (operasyon) ayrıldı
