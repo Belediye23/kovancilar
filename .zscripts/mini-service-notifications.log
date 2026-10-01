@@ -7,3 +7,6 @@ bun install v1.3.14 (0d9b296a)
 [notifications] Running bun run dev...
 $ bun --hot index.ts
 [notifications] Socket.io servisi 3004 portunda çalışıyor
+[socket] Yeni bağlantı: 4ZzhnqhaAh6o7s33AAAA
+[socket] 0001 (zabita) kayıt oldu — toplam 1 client
+[socket] 0001 (zabita) ayrıldı
