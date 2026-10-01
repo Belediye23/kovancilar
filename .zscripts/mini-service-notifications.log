@@ -1,12 +1,17 @@
 [notifications] Installing dependencies...
 bun install v1.3.14 (0d9b296a)
 
-+ socket.io@4.8.3
-
-22 packages installed [79.00ms]
+Checked 22 installs across 23 packages (no changes) [1.00ms]
 [notifications] Running bun run dev...
 $ bun --hot index.ts
-[notifications] Socket.io servisi 3004 portunda çalışıyor
-[socket] Yeni bağlantı: 4ZzhnqhaAh6o7s33AAAA
+46 |     }
+47 |   }
+48 |   let er;
+49 |   if (args.length > 0)
+50 |     er = args[0];
+51 |     throw er;
+                 ^
+error: Failed to start server. Is port 3004 in use?
+      at em[socket] Yeni bağlantı: Y5DwaKcMn3FGD1CnAAAB
 [socket] 0001 (zabita) kayıt oldu — toplam 1 client
 [socket] 0001 (zabita) ayrıldı
