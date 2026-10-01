@@ -115,7 +115,8 @@ interface OperasyonState {
 
 const allVakalar: Vaka[] = [...VAKALAR, ...OPERASYON_OZEL_VAKALAR];
 
-const initialState = {
+// Seed veri — resetToSeed ile geri yüklenebilir
+const seedState = {
   vakalar: allVakalar,
   ekipler: EKIPLER,
   bildirimler: BILDIRIMLER,
@@ -126,6 +127,20 @@ const initialState = {
   araclar: ARAÇLAR,
   ruhsatlar: RUHSATLAR,
   pazarTezgahlari: PAZAR_TEZGAHLARI,
+};
+
+// Boş başlangıç — kullanıcı sıfırdan veri girecek
+const initialState = {
+  vakalar: [] as Vaka[],
+  ekipler: [] as Ekip[],
+  bildirimler: [] as Bildirim[],
+  denetimler: [] as DenetimKaydi[],
+  suAriza: [] as SuAruzaKaydi[],
+  evraklar: [] as Evrak[],
+  mahalleler: MAHALLELER, // Mahalleler sabit kalsın — altyapı bilgisi
+  araclar: [] as typeof ARAÇLAR,
+  ruhsatlar: [] as Ruhsat[],
+  pazarTezgahlari: [] as PazarYeriTezgah[],
 };
 
 export const useOperasyonStore = create<OperasyonState>()(
@@ -471,7 +486,7 @@ export const useOperasyonStore = create<OperasyonState>()(
         return all.filter((e) => e.birimId === birimId);
       },
 
-      resetToSeed: () => set({ ...initialState }),
+      resetToSeed: () => set({ ...seedState }),
     }),
     {
       name: "kovancilar-bsm-store",
@@ -488,8 +503,8 @@ export const useOperasyonStore = create<OperasyonState>()(
         ruhsatlar: s.ruhsatlar,
         pazarTezgahlari: s.pazarTezgahlari,
       }),
-      version: 6,
-      migrate: () => null,
+      version: 7,
+      migrate: () => null, // Eski localStorage verisini tamamen sil
     }
   )
 );
