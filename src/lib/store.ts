@@ -14,6 +14,8 @@ import {
   DENETIM_KAYITLARI,
   SU_ARIZA,
   EVRAKLAR,
+  RUHSATLAR,
+  PAZAR_TEZGAHLARI,
 } from "./mock-data";
 import type {
   Vaka,
@@ -25,6 +27,8 @@ import type {
   DenetimKaydi,
   SuAruzaKaydi,
   Evrak,
+  Ruhsat,
+  PazarYeriTezgah,
 } from "./types";
 
 interface OperasyonState {
@@ -91,6 +95,18 @@ interface OperasyonState {
   // Mutasyonlar — Su Arıza
   addSuAriza: (kayit: SuAruzaKaydi) => void;
 
+  // Mutasyonlar — Ruhsat
+  ruhsatlar: Ruhsat[];
+  addRuhsat: (ruhsat: Ruhsat) => void;
+  updateRuhsatDurum: (id: string, durum: Ruhsat["durum"], not?: string) => void;
+  deleteRuhsat: (id: string) => void;
+
+  // Mutasyonlar — Pazar Yeri Tezgah
+  pazarTezgahlari: PazarYeriTezgah[];
+  addPazarTezgah: (tezgah: PazarYeriTezgah) => void;
+  updatePazarTezgah: (id: string, patch: Partial<PazarYeriTezgah>) => void;
+  deletePazarTezgah: (id: string) => void;
+
   // Yardımcılar
   getVakalarByBirim: (birimId: BirimId) => Vaka[];
   getEkilerByBirim: (birimId: BirimId) => Ekip[];
@@ -108,6 +124,8 @@ const initialState = {
   evraklar: EVRAKLAR,
   mahalleler: MAHALLELER,
   araclar: ARAÇLAR,
+  ruhsatlar: RUHSATLAR,
+  pazarTezgahlari: PAZAR_TEZGAHLARI,
 };
 
 export const useOperasyonStore = create<OperasyonState>()(
@@ -395,6 +413,50 @@ export const useOperasyonStore = create<OperasyonState>()(
       addSuAriza: (kayit) =>
         set((s) => ({ suAriza: [kayit, ...s.suAriza] })),
 
+      // --- Ruhsat mutasyonları ---
+
+      addRuhsat: (ruhsat) =>
+        set((s) => ({ ruhsatlar: [ruhsat, ...s.ruhsatlar] })),
+
+      updateRuhsatDurum: (id, durum, not) =>
+        set((s) => ({
+          ruhsatlar: s.ruhsatlar.map((r) =>
+            r.id === id
+              ? {
+                  ...r,
+                  durum,
+                  not: not ?? r.not,
+                  onayTarihi:
+                    durum === "onaylandi" || durum === "reddedildi"
+                      ? new Date().toISOString()
+                      : r.onayTarihi,
+                }
+              : r
+          ),
+        })),
+
+      deleteRuhsat: (id) =>
+        set((s) => ({
+          ruhsatlar: s.ruhsatlar.filter((r) => r.id !== id),
+        })),
+
+      // --- Pazar Yeri Tezgah mutasyonları ---
+
+      addPazarTezgah: (tezgah) =>
+        set((s) => ({ pazarTezgahlari: [tezgah, ...s.pazarTezgahlari] })),
+
+      updatePazarTezgah: (id, patch) =>
+        set((s) => ({
+          pazarTezgahlari: s.pazarTezgahlari.map((t) =>
+            t.id === id ? { ...t, ...patch } : t
+          ),
+        })),
+
+      deletePazarTezgah: (id) =>
+        set((s) => ({
+          pazarTezgahlari: s.pazarTezgahlari.filter((t) => t.id !== id),
+        })),
+
       // --- Yardımcılar ---
 
       getVakalarByBirim: (birimId) => {
@@ -423,9 +485,11 @@ export const useOperasyonStore = create<OperasyonState>()(
         evraklar: s.evraklar,
         mahalleler: s.mahalleler,
         araclar: s.araclar,
+        ruhsatlar: s.ruhsatlar,
+        pazarTezgahlari: s.pazarTezgahlari,
       }),
-      version: 5,
-      migrate: () => null, // Eski localStorage verisini tamamen sil
+      version: 6,
+      migrate: () => null,
     }
   )
 );

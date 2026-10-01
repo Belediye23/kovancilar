@@ -16,12 +16,15 @@ import {
   MapPin,
   Plus,
   Search,
+  FileCheck,
+  ShoppingBag,
 } from "lucide-react";
 import { DashboardHeader, StatCard } from "@/components/app-shell";
 import { MiniHarita } from "@/components/shared/mini-harita";
 import { VakaKarti } from "@/components/shared/vaka-karti";
 import { YeniVakaFormu } from "@/components/shared/yeni-vaka-formu";
 import { YeniDenetimFormu } from "@/components/shared/yeni-denetim-evrak-formu";
+import { RuhsatlarModulu, PazarYeriModulu } from "@/components/shared/ruhsat-pazar-yonetimi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -30,7 +33,7 @@ import { formatTarih } from "@/lib/mock-data";
 import { useOperasyonStore } from "@/lib/store";
 import type { SessionUser, Vaka } from "@/lib/types";
 
-type Module = "genel" | "denetimler" | "cezalar" | "sikayetler" | "ekipler" | "yeni-vaka";
+type Module = "genel" | "denetimler" | "cezalar" | "sikayetler" | "ekipler" | "yeni-vaka" | "ruhsatlar" | "pazar-yeri";
 
 export function ZabitaDashboard({
   user,
@@ -150,6 +153,8 @@ export function ZabitaDashboard({
       {aktifModul === "denetimler" && (
         <DenetimlerModulu onYeniDenetim={() => setYeniDenetimOpen(true)} />
       )}
+      {aktifModul === "ruhsatlar" && <RuhsatlarModulu />}
+      {aktifModul === "pazar-yeri" && <PazarYeriModulu />}
       {aktifModul === "cezalar" && <CezalarModulu />}
       {aktifModul === "sikayetler" && <SikayetlerModulu vakalar={vakalar} />}
       {aktifModul === "ekipler" && <ZabitaEkiplerModulu />}
@@ -175,6 +180,8 @@ export function ZabitaDashboard({
 const MODULES = [
   { id: "genel", label: "Genel Bakış", ikon: Activity },
   { id: "denetimler", label: "Denetimler", ikon: Store },
+  { id: "ruhsatlar", label: "Ruhsatlar", ikon: FileCheck },
+  { id: "pazar-yeri", label: "Pazar Yeri", ikon: ShoppingBag },
   { id: "cezalar", label: "Ceza Kayıtları", ikon: AlertTriangle },
   { id: "sikayetler", label: "Şikayetler", ikon: FileText },
   { id: "ekipler", label: "Saha Ekipleri", ikon: Users },

@@ -126,3 +126,44 @@ export interface Evrak {
   durum: "bekliyor" | "isleniyor" | "tamamlandi";
   tip: string;
 }
+
+// --- Ruhsat tipleri ---
+
+export type RuhsatDurum = "beklemede" | "inceleniyor" | "onaylandi" | "reddedildi" | "iptal";
+
+export type RuhsatTur =
+  | "isyeri-acma"
+  | "etkinlik"
+  | "yapi-insaat"
+  | "pazar-yeri";
+
+export interface Ruhsat {
+  id: string;
+  basvuruNo: string;
+  tur: RuhsatTur;
+  baslik: string;
+  basvuran: string;
+  isletmeAdi: string;
+  telefon: string;
+  mahalle: string;
+  adres: string;
+  faaliyetKonusu: string;
+  durum: RuhsatDurum;
+  basvuruTarihi: string;
+  onayTarihi?: string;
+  not?: string;
+  ucret?: number;
+}
+
+// --- Pazar Yeri Tezgah ---
+
+export interface PazarYeriTezgah {
+  id: string;
+  tezgahNo: string;
+  pazarGunu: string;
+  esnafAdi: string;
+  faaliyet: string;
+  ucret: number;
+  odendi: boolean;
+  durum: "aktif" | "pasif" | "beklemede";
+}
